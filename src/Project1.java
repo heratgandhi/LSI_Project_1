@@ -99,7 +99,7 @@ public class Project1 extends HttpServlet {
 				case 1:
 					byte[] outBuf;
 					int call_id = (int)(Math.random() * 1000);
-					String packetS = call_id + "#" + opcode + "#" + sessionid + "#" + sv.message + "#" + sv.version_number + "#" + minutes;
+					String packetS = call_id + "#" + opcode + "#" + sessionid + "#" + sv.message + "#" + sv.version_number + "#" + sv.time_stamp;
 					outBuf = packetS.getBytes();
 					int randomNode = (int)(Math.random() * mbrSet.size());
 					//Send to randomNode
