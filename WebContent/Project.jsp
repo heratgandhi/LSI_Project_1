@@ -47,11 +47,8 @@
 			out.println("<tr><td><a href='"+ request.getContextPath() +"/Project1?cmd=refresh'><button>Refresh</button></a></td></tr>");
 			out.println("<tr><td><a href='"+ request.getContextPath() +"/Project1?cmd=logout'><button>Logout</button></a></td></tr>");
 			out.println("</table>");
-			Calendar cal = Calendar.getInstance();
-			cal.setTime(new Date());
-			cal.add(Calendar.MINUTE, 1);
-			
-			out.println("Session expires on: "+ new Timestamp(cal.getTimeInMillis()));
+
+			out.println("Session expires on: "+ new Timestamp( new Date().getTime() + (Project1.minutes * 60 * 1000) ));
 			out.println("<br/>Server IP:" + serverIP);
 			out.println("<br/>Port:"+request.getLocalPort());
 		} else {

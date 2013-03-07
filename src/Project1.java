@@ -25,7 +25,7 @@ import javax.servlet.http.HttpServletResponse;
  */
 class SessionValue {
 	String version_number; //Version number of data
-	Calendar time_stamp; //Time Stamp value
+	long time_stamp; //Time Stamp value
 	String message; //Message
 }
 
@@ -35,7 +35,7 @@ class SessionValue {
  */
 public class Project1 extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-	private static final int minutes = 1;
+	public static final int minutes = 1;
 	
 	//Hash Table sessionTable is used to store session data
 	public static ConcurrentHashMap<String,SessionValue> sessionTable = new ConcurrentHashMap<String,SessionValue>(100);
@@ -87,7 +87,7 @@ public class Project1 extends HttpServlet {
 		     * expiration time, if yes then remove that entry from session
 		     * table.
 		     */
-		    if (entry.getValue().time_stamp.before(Calendar.getInstance()) ) {
+		    if (entry.getValue().time_stamp < new Date().getTime()) {
 		        itr.remove();
 		    }
 		}
@@ -146,9 +146,7 @@ public class Project1 extends HttpServlet {
 			SessionValue sv = new SessionValue();
 			sv.message = msg;
 			sv.version_number = version_no;
-			sv.time_stamp = Calendar.getInstance();
-			sv.time_stamp.setTime(new Date());
-			sv.time_stamp.add(Calendar.MINUTE, 1);
+			sv.time_stamp = new Date().getTime() + (minutes * 60 * 1000);
 			
 			sessionTable.put(session_id, sv);
 			
@@ -228,9 +226,7 @@ public class Project1 extends HttpServlet {
 						}
 				}
 				//Update entry in the session table	
-				sv1.time_stamp = Calendar.getInstance(); //Extend the expiration time by one minute
-				sv1.time_stamp.setTime(new Date());
-				sv1.time_stamp.add(Calendar.MINUTE, 1); 
+				sv1.time_stamp = new Date().getTime() + (minutes * 60 * 1000); 
 				
 				int vno = Integer.parseInt(sv1.version_number);
 				
