@@ -9,6 +9,7 @@
  *  used synchronized in our code.
  */
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.*;
 import javax.servlet.ServletException;
@@ -34,11 +35,14 @@ class SessionValue {
  */
 public class Project1 extends HttpServlet {
 	private static final long serialVersionUID = 1L;
+	private static final int minutes = 1;
 	
 	//Hash Table sessionTable is used to store session data
 	public static ConcurrentHashMap<String,SessionValue> sessionTable = new ConcurrentHashMap<String,SessionValue>(100);
 	
 	public static ArrayList<String> mbrSet = new ArrayList<String>();
+	
+	public static int port_udp;
 	
 	/**
      * Default constructor. 
@@ -89,33 +93,27 @@ public class Project1 extends HttpServlet {
 		}
     }
     
-    void RPCClientStub() {
-		try {
-		    
-			byte[] outBuf = new byte[512];
-		    int call_id = (int)(Math.random() * 1000);
-		    int opcode = 1;
-		    String packetS = call_id + "#" + opcode;
-		    outBuf = packetS.getBytes();
-			int k = 2;
-					    
-		    /*for( each destAddr, destPort ) {
-			    DatagramPacket sendPkt = new DatagramPacket(outBuf, length, destAddr, destPort)
-			    rpcSocket.send(sendPkt);
-			}*/
-			byte [] inBuf = new byte[512];
-			//DatagramPacket recvPkt = new DatagramPacket(inBuf, inBuf.length);
-			//try {
-			  //do {
-			    //recvPkt.setLength(inBuf.length);
-			    //rpcSocket.receive(recvPkt);
-			  //} //while( the callID in inBuf is not the expected one );
-			//} catch(InterruptedIOException iioe) {
-				// timeout 
-				//recvPkt = null;
-			//} 
+    String RPCClientStub(int opcode, String sessionid, SessionValue sv) {
+		try {		    
+			switch(opcode) {
+				case 1:
+					byte[] outBuf;
+					int call_id = (int)(Math.random() * 1000);
+					String packetS = call_id + "#" + opcode + "#" + sessionid + "#" + sv.message + "#" + sv.version_number + "#" + minutes;
+					outBuf = packetS.getBytes();
+					int randomNode = (int)(Math.random() * mbrSet.size());
+					//Send to randomNode
+				break;
+				case 2:
+				break;
+				case 3:
+				break;
+				case 4:
+				break;
+			}
 		} catch(Exception ioe) {
 		}
+		return "";
     }
 
 	/**
@@ -137,9 +135,27 @@ public class Project1 extends HttpServlet {
 		 * the new session. 
 		 */
 		if(c == null) {
-			String session_id = UUID.randomUUID().toString().replaceAll("-", ""); //Generate unique session id using UUID class
+			String session_id = UUID.randomUUID().toString().replaceAll("-", "").substring(0,5); //Generate unique session id using UUID class
 			String version_no = "1"; //Set initial version number to 1
-			String location_data = "1"; //As currently there is only one server the location id will be 1
+			String location_data = "";
+			String backup_n;
+			
+			location_data = InetAddress.getLocalHost().getHostAddress() + ":" + port_udp;
+						
+			//Create corresponding entry in the session table
+			SessionValue sv = new SessionValue();
+			sv.message = msg;
+			sv.version_number = version_no;
+			sv.time_stamp = Calendar.getInstance();
+			sv.time_stamp.setTime(new Date());
+			sv.time_stamp.add(Calendar.MINUTE, 1);
+			
+			sessionTable.put(session_id, sv);
+			
+			if(mbrSet.size() != 0) {
+				backup_n = RPCClientStub(1,session_id,sv);
+				location_data += "#" + backup_n;
+			}
 			
 			msg = "Welcome for the first time..."; //Default message
 			
@@ -153,17 +169,7 @@ public class Project1 extends HttpServlet {
 			ck.setMaxAge(60);
 			//Send cookie to the client
 			response.addCookie(ck);
-			
-			//Create corresponding entry in the session table
-			SessionValue sv = new SessionValue();
-			sv.message = msg;
-			sv.version_number = version_no;
-			sv.time_stamp = Calendar.getInstance();
-			sv.time_stamp.setTime(new Date());
-			sv.time_stamp.add(Calendar.MINUTE, 1);
-			
-			sessionTable.put(session_id, sv);
-			
+						
 			//Remove any expired session entry from the session table
 			RemoveExpiredCookie();
 		}

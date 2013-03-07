@@ -15,7 +15,17 @@ public class RPCServer extends Thread {
 			while(true) {
 				DatagramPacket receivePacket = new DatagramPacket(data, data.length);
 				server.receive(receivePacket);
+				
+				Project1.port_udp = server.getPort();
+				
 				String opcode = new String(receivePacket.getData());
+				InetAddress ipaddr = receivePacket.getAddress();
+				int portNo = receivePacket.getPort();
+				
+				if( Project1.mbrSet.indexOf(ipaddr.toString() + ":" + portNo) != -1 ) {
+					Project1.mbrSet.add(ipaddr.toString() + ":" + portNo);
+				}
+				
 				byte[] output = new byte[512];
 				
 				switch(Integer.parseInt(opcode)) {
@@ -33,7 +43,7 @@ public class RPCServer extends Thread {
 				}
 				
 				DatagramPacket sendPacket = new DatagramPacket(output, output.length,
-						receivePacket.getAddress(),receivePacket.getPort());
+						ipaddr,portNo);
 				server.send(sendPacket);
 			}
 		} catch(Exception e) {
