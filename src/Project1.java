@@ -34,14 +34,22 @@ class SessionValue {
  */
 public class Project1 extends HttpServlet {
 	private static final long serialVersionUID = 1L;
+	
 	//Hash Table sessionTable is used to store session data
-	private ConcurrentHashMap<String,SessionValue> sessionTable = new ConcurrentHashMap<String,SessionValue>(100);
+	public static ConcurrentHashMap<String,SessionValue> sessionTable = new ConcurrentHashMap<String,SessionValue>(100);
+	
+	public static ArrayList<String> mbrSet = new ArrayList<String>();
 	
 	/**
      * Default constructor. 
      */
     public Project1() {
         // TODO Auto-generated constructor stub
+    }
+    
+    public void init() {
+    	RPCServer rpcServerT = new RPCServer();
+    	rpcServerT.start();
     }
     
     /**
@@ -78,6 +86,35 @@ public class Project1 extends HttpServlet {
 		    if (entry.getValue().time_stamp.before(Calendar.getInstance()) ) {
 		        itr.remove();
 		    }
+		}
+    }
+    
+    void RPCClientStub() {
+		try {
+		    
+			byte[] outBuf = new byte[512];
+		    int call_id = (int)(Math.random() * 1000);
+		    int opcode = 1;
+		    String packetS = call_id + "#" + opcode;
+		    outBuf = packetS.getBytes();
+			int k = 2;
+					    
+		    /*for( each destAddr, destPort ) {
+			    DatagramPacket sendPkt = new DatagramPacket(outBuf, length, destAddr, destPort)
+			    rpcSocket.send(sendPkt);
+			}*/
+			byte [] inBuf = new byte[512];
+			//DatagramPacket recvPkt = new DatagramPacket(inBuf, inBuf.length);
+			//try {
+			  //do {
+			    //recvPkt.setLength(inBuf.length);
+			    //rpcSocket.receive(recvPkt);
+			  //} //while( the callID in inBuf is not the expected one );
+			//} catch(InterruptedIOException iioe) {
+				// timeout 
+				//recvPkt = null;
+			//} 
+		} catch(Exception ioe) {
 		}
     }
 
