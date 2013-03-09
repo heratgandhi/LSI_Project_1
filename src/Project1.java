@@ -38,6 +38,7 @@ class SessionValue {
 public class Project1 extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	public static final int minutes = 1;
+	public static final int wait_time_seconds = 10;
 	
 	//Hash Table sessionTable is used to store session data
 	public static ConcurrentHashMap<String,SessionValue> sessionTable = new ConcurrentHashMap<String,SessionValue>(100);
@@ -99,6 +100,7 @@ public class Project1 extends HttpServlet {
 		try {		    
 			switch(opcode) {
 				case 1:
+					//Session Write- First Request
 					byte[] outBuf;
 					byte[] inBuf = new byte[512];
 					int call_id = (int)(Math.random() * 1000);
@@ -114,7 +116,7 @@ public class Project1 extends HttpServlet {
 						DatagramPacket sendPacket = new DatagramPacket(outBuf, outBuf.length, ipA, portA);
 					    clientSocket.send(sendPacket);
 					    
-					    clientSocket.setSoTimeout(1*60*1000);
+					    clientSocket.setSoTimeout(wait_time_seconds * 1000);
 					    
 					    DatagramPacket receivePacket = new DatagramPacket(inBuf, inBuf.length);
 					    clientSocket.receive(receivePacket);				    
@@ -123,10 +125,102 @@ public class Project1 extends HttpServlet {
 					}
 				break;
 				case 2:
+					//Session Read
+					byte[] outBuf_r;
+					byte[] inBuf_r = new byte[512];
+					byte[] inBuf_r1 = new byte[512];
+					int call_id_r = (int)(Math.random() * 1000);
+					String packetS_r = call_id_r + "#" + opcode + "#" + sessionid;
+					outBuf_r = packetS_r.getBytes();
+					
+					InetAddress ipA_r1 = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
+					int portA_r1 = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
+					
+					InetAddress ipA_r2 = null;
+					int portA_r2 = 0;
+					if(ipp2 != "") {
+						ipA_r2 = InetAddress.getByName(ipp2.substring(0,ipp1.indexOf(':')));
+						portA_r2 = Integer.parseInt(ipp2.substring(ipp1.indexOf(':')+1));
+					}
+					
+					try {
+						DatagramSocket clientSocket = new DatagramSocket();
+						DatagramPacket sendPacket = new DatagramPacket(outBuf_r, outBuf_r.length, ipA_r1, portA_r1);
+					    clientSocket.send(sendPacket);
+					    
+					    clientSocket.setSoTimeout(wait_time_seconds * 1000);
+					    
+					    DatagramPacket receivePacket = new DatagramPacket(inBuf_r, inBuf_r.length);
+					    clientSocket.receive(receivePacket);
+					    return new String(inBuf_r);
+					} catch(Exception e) {
+						mbrSet.remove(ipp1);
+					}
+					
+					if(ipp2 != "") {
+						try {
+							DatagramSocket clientSocket = new DatagramSocket();
+							DatagramPacket sendPacket = new DatagramPacket(outBuf_r, outBuf_r.length, ipA_r2, portA_r2);
+						    clientSocket.send(sendPacket);
+						    
+						    clientSocket.setSoTimeout(wait_time_seconds * 1000);
+						    
+						    DatagramPacket receivePacket = new DatagramPacket(inBuf_r1, inBuf_r1.length);
+						    clientSocket.receive(receivePacket);
+						    return new String(inBuf_r1);
+						} catch(Exception e) {
+							mbrSet.remove(ipp2);
+						}
+					}
+					
 				break;
 				case 3:
+					//Session Update
+					byte[] outBuf_u;
+					byte[] inBuf_u = new byte[512];
+					int call_id_u = (int)(Math.random() * 1000);
+					String packetS4_u = call_id_u + "#" + opcode + "#" + sessionid + "#" + sv.message + "#" + sv.version_number + "#" + sv.time_stamp;
+					outBuf_u = packetS4_u.getBytes();
+					
+					InetAddress ipA4_u = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
+					int portA4_u = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
+					
+					InetAddress ipA42_u = null;
+					int portA42_u = 0;
+					if(ipp2 != "") {
+						ipA42_u = InetAddress.getByName(ipp2.substring(0,ipp1.indexOf(':')));
+						portA42_u = Integer.parseInt(ipp2.substring(ipp1.indexOf(':')+1));
+					}
+					
+					try {
+						DatagramSocket clientSocket = new DatagramSocket();
+						DatagramPacket sendPacket = new DatagramPacket(outBuf_u, outBuf_u.length, ipA4_u, portA4_u);
+					    clientSocket.send(sendPacket);
+					    
+					    clientSocket.setSoTimeout(wait_time_seconds * 1000);
+					    
+					    DatagramPacket receivePacket = new DatagramPacket(inBuf_u, inBuf_u.length);
+					    clientSocket.receive(receivePacket);				    
+					} catch(Exception e) {
+						mbrSet.remove(ipp1);
+					}
+					if(ipp2 != "") {
+						try {
+							DatagramSocket clientSocket = new DatagramSocket();
+							DatagramPacket sendPacket = new DatagramPacket(outBuf_u, outBuf_u.length, ipA42_u, portA42_u);
+						    clientSocket.send(sendPacket);
+						    
+						    clientSocket.setSoTimeout(wait_time_seconds * 1000);
+						    
+						    DatagramPacket receivePacket = new DatagramPacket(inBuf_u, inBuf_u.length);
+						    clientSocket.receive(receivePacket);				    
+						} catch(Exception e) {
+							mbrSet.remove(ipp2);
+						}
+					}
 				break;
 				case 4:
+					//Session Delete
 					byte[] outBuf4;
 					byte[] inBuf4 = new byte[512];
 					int call_id4 = (int)(Math.random() * 1000);
@@ -148,7 +242,7 @@ public class Project1 extends HttpServlet {
 						DatagramPacket sendPacket = new DatagramPacket(outBuf, outBuf.length, ipA4, portA4);
 					    clientSocket.send(sendPacket);
 					    
-					    clientSocket.setSoTimeout(1*60*1000);
+					    clientSocket.setSoTimeout(wait_time_seconds * 1000);
 					    
 					    DatagramPacket receivePacket = new DatagramPacket(inBuf4, inBuf4.length);
 					    clientSocket.receive(receivePacket);				    
@@ -161,7 +255,7 @@ public class Project1 extends HttpServlet {
 							DatagramPacket sendPacket = new DatagramPacket(outBuf, outBuf.length, ipA42, portA42);
 						    clientSocket.send(sendPacket);
 						    
-						    clientSocket.setSoTimeout(1*60*1000);
+						    clientSocket.setSoTimeout(wait_time_seconds * 1000);
 						    
 						    DatagramPacket receivePacket = new DatagramPacket(inBuf4, inBuf4.length);
 						    clientSocket.receive(receivePacket);				    
@@ -295,9 +389,6 @@ public class Project1 extends HttpServlet {
 						//Send updated cookie to the client
 						response.addCookie(c[i]);
 						
-						//Send to RPC Server
-						RPCClientStub(3, session_id_c , sv1, ipp1, ipp2);
-						
 						//Replace the message in the session table
 						sv1.message = msg1;
 					}
@@ -328,6 +419,9 @@ public class Project1 extends HttpServlet {
 							response.addCookie(c[i]); //Send new cookie
 						}
 				}
+				
+				RPCClientStub(3, session_id_c, sv1, ipp1, ipp2);
+					
 				//Update entry in the session table	
 				sv1.time_stamp = new Date().getTime() + (minutes * 60 * 1000); 
 				
