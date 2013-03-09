@@ -243,17 +243,39 @@ public class Project1 extends HttpServlet {
 					//Get session id from cookie
 					session_id_c = c[i].getValue().substring(0,c[i].getValue().indexOf("#"));
 					
-					//Get session value corresponding to the above session id
-					//### If session data is not available here then go and fetch from other servers
-					SessionValue sv1 = (SessionValue) sessionTable.get(session_id_c);
-					
-					//Get message value from cookie
-					msg = c[i].getValue().substring(c[i].getValue().lastIndexOf("#")+1,c[i].getValue().indexOf("@"));
-					
 					String ipp_tpl = c[i].getValue().substring(c[i].getValue().indexOf("@")+1);
 					String ipp1 = "";
 					String ipp2 = "";
 					ipp1 = ipp_tpl;
+					
+					//Get session value corresponding to the above session id
+					//### If session data is not available here then go and fetch from other servers
+					SessionValue sv1 = (SessionValue) sessionTable.get(session_id_c);
+					if(sv1 == null) {
+						String sv1_data = RPCClientStub(2, session_id_c, null, ipp1, ipp2);
+						sv1 = new SessionValue();
+						//call_id + "#" + sessionid + "#" + sv.message + "#" + sv.version_number + "#" + sv.time_stamp
+						for(int jj = 0; jj < 5; jj++) {
+							if(jj < 2) {
+								 sv1_data = sv1_data.substring(sv1_data.indexOf("#")+1);
+							}
+							else if(jj == 2) {
+								sv1.message = sv1_data.substring(0,sv1_data.indexOf("#"));								
+							}
+							else if(jj == 3) {
+								sv1.version_number = sv1_data.substring(0,sv1_data.indexOf("#"));								
+							}
+							else if(jj == 4) {
+								sv1.time_stamp = Long.parseLong(sv1_data.substring(0,sv1_data.indexOf("#")));								
+							}
+							sv1_data = sv1_data.substring(sv1_data.indexOf("#")+1);
+						}
+						sessionTable.put(session_id_c, sv1);
+					}
+					
+					//Get message value from cookie
+					msg = c[i].getValue().substring(c[i].getValue().lastIndexOf("#")+1,c[i].getValue().indexOf("@"));
+								
 					
 					//There is not another ipp in the cookie
 					if(ipp_tpl.indexOf("@") != -1) {
@@ -272,6 +294,9 @@ public class Project1 extends HttpServlet {
 						c[i].setMaxAge(60);
 						//Send updated cookie to the client
 						response.addCookie(c[i]);
+						
+						//Send to RPC Server
+						RPCClientStub(3, session_id_c , sv1, ipp1, ipp2);
 						
 						//Replace the message in the session table
 						sv1.message = msg1;
