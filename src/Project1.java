@@ -103,6 +103,11 @@ public class Project1 extends HttpServlet {
 					outBuf = packetS.getBytes();
 					int randomNode = (int)(Math.random() * mbrSet.size());
 					//Send to randomNode
+					try {
+						
+					} catch(Exception e) {
+						
+					}
 				break;
 				case 2:
 				break;
@@ -152,7 +157,7 @@ public class Project1 extends HttpServlet {
 			
 			if(mbrSet.size() != 0) {
 				backup_n = RPCClientStub(1,session_id,sv);
-				location_data += "#" + backup_n;
+				location_data += "@" + backup_n;
 			}
 			
 			msg = "Welcome for the first time..."; //Default message
@@ -160,7 +165,7 @@ public class Project1 extends HttpServlet {
 			String message_var = msg;
 			
 			//Create cookie value
-			String message = session_id + "#" + version_no + "#" + location_data + "#" + message_var; 
+			String message = session_id + "#" + version_no + "#" + message_var + "@" + location_data; 
 			
 			Cookie ck = new Cookie("CS5300PROJ1SESSIONSVH",message);
 			//Currently session timeout period is of 1 minute.
@@ -182,10 +187,22 @@ public class Project1 extends HttpServlet {
 				if(c[i].getName().equals("CS5300PROJ1SESSIONSVH")) {
 					//Get session id from cookie
 					session_id_c = c[i].getValue().substring(0,c[i].getValue().indexOf("#"));
+					
 					//Get session value corresponding to the above session id
+					//### If session data is not available here then go and fetch from other servers
 					SessionValue sv1 = (SessionValue) sessionTable.get(session_id_c);
+					
 					//Get message value from cookie
-					msg = c[i].getValue().substring(c[i].getValue().lastIndexOf("#")+1);
+					msg = c[i].getValue().substring(c[i].getValue().lastIndexOf("#")+1,c[i].getValue().indexOf("@"));
+					
+					String ipp_tpl = c[i].getValue().substring(c[i].getValue().indexOf("@")+1);
+					
+					//There is not another ipp in the cookie
+					if(ipp_tpl.indexOf("@") != -1) {
+						
+					} else {
+						
+					}
 					
 					//If command is replace and new string is not empty string then
 					if(request.getParameter("replace") != null 
@@ -193,7 +210,8 @@ public class Project1 extends HttpServlet {
 						
 						//Get string value with which we want to replace the current message
 						msg1 = request.getParameter("replace");
-						c[i].setValue(c[i].getValue().substring(0,c[i].getValue().lastIndexOf("#")+1)+msg1);
+						c[i].setValue(c[i].getValue().substring( 0, c[i].getValue().lastIndexOf("#")+1) + msg1 + 
+								c[i].getValue().substring(c[i].getValue().lastIndexOf("@")));
 						c[i].setMaxAge(60);
 						//Send updated cookie to the client
 						response.addCookie(c[i]);
