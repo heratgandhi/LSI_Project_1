@@ -9,6 +9,8 @@
  *  used synchronized in our code.
  */
 import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.*;
@@ -93,20 +95,31 @@ public class Project1 extends HttpServlet {
 		}
     }
     
-    String RPCClientStub(int opcode, String sessionid, SessionValue sv) {
+    String RPCClientStub(int opcode, String sessionid, SessionValue sv, String ipp1, String ipp2) {
 		try {		    
 			switch(opcode) {
 				case 1:
 					byte[] outBuf;
+					byte[] inBuf = new byte[512];
 					int call_id = (int)(Math.random() * 1000);
 					String packetS = call_id + "#" + opcode + "#" + sessionid + "#" + sv.message + "#" + sv.version_number + "#" + sv.time_stamp;
 					outBuf = packetS.getBytes();
 					int randomNode = (int)(Math.random() * mbrSet.size());
+					String ipp = mbrSet.get(randomNode);
+					InetAddress ipA = InetAddress.getByName(ipp.substring(0,ipp.indexOf(':')));
+					int portA = Integer.parseInt(ipp.substring(ipp.indexOf(':')+1));
 					//Send to randomNode
 					try {
-						
+						DatagramSocket clientSocket = new DatagramSocket();
+						DatagramPacket sendPacket = new DatagramPacket(outBuf, outBuf.length, ipA, portA);
+					    clientSocket.send(sendPacket);
+					    
+					    clientSocket.setSoTimeout(1*60*1000);
+					    
+					    DatagramPacket receivePacket = new DatagramPacket(inBuf, inBuf.length);
+					    clientSocket.receive(receivePacket);				    
 					} catch(Exception e) {
-						
+						mbrSet.remove(ipp);
 					}
 				break;
 				case 2:
@@ -114,6 +127,48 @@ public class Project1 extends HttpServlet {
 				case 3:
 				break;
 				case 4:
+					byte[] outBuf4;
+					byte[] inBuf4 = new byte[512];
+					int call_id4 = (int)(Math.random() * 1000);
+					String packetS4 = call_id4 + "#" + opcode + "#" + sessionid;
+					outBuf = packetS4.getBytes();
+					
+					InetAddress ipA4 = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
+					int portA4 = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
+					
+					InetAddress ipA42 = null;
+					int portA42 = 0;
+					if(ipp2 != "") {
+						ipA42 = InetAddress.getByName(ipp2.substring(0,ipp1.indexOf(':')));
+						portA42 = Integer.parseInt(ipp2.substring(ipp1.indexOf(':')+1));
+					}
+					
+					try {
+						DatagramSocket clientSocket = new DatagramSocket();
+						DatagramPacket sendPacket = new DatagramPacket(outBuf, outBuf.length, ipA4, portA4);
+					    clientSocket.send(sendPacket);
+					    
+					    clientSocket.setSoTimeout(1*60*1000);
+					    
+					    DatagramPacket receivePacket = new DatagramPacket(inBuf4, inBuf4.length);
+					    clientSocket.receive(receivePacket);				    
+					} catch(Exception e) {
+						mbrSet.remove(ipp1);
+					}
+					if(ipp2 != "") {
+						try {
+							DatagramSocket clientSocket = new DatagramSocket();
+							DatagramPacket sendPacket = new DatagramPacket(outBuf, outBuf.length, ipA42, portA42);
+						    clientSocket.send(sendPacket);
+						    
+						    clientSocket.setSoTimeout(1*60*1000);
+						    
+						    DatagramPacket receivePacket = new DatagramPacket(inBuf4, inBuf4.length);
+						    clientSocket.receive(receivePacket);				    
+						} catch(Exception e) {
+							mbrSet.remove(ipp2);
+						}
+					}
 				break;
 			}
 		} catch(Exception ioe) {
@@ -156,7 +211,7 @@ public class Project1 extends HttpServlet {
 			sessionTable.put(session_id, sv);
 			
 			if(mbrSet.size() != 0) {
-				backup_n = RPCClientStub(1,session_id,sv);
+				backup_n = RPCClientStub(1,session_id,sv,"","");
 				location_data += "@" + backup_n;
 			}
 			
@@ -196,13 +251,15 @@ public class Project1 extends HttpServlet {
 					msg = c[i].getValue().substring(c[i].getValue().lastIndexOf("#")+1,c[i].getValue().indexOf("@"));
 					
 					String ipp_tpl = c[i].getValue().substring(c[i].getValue().indexOf("@")+1);
+					String ipp1 = "";
+					String ipp2 = "";
+					ipp1 = ipp_tpl;
 					
 					//There is not another ipp in the cookie
 					if(ipp_tpl.indexOf("@") != -1) {
-						
-					} else {
-						
-					}
+						ipp1 = ipp_tpl.substring(0,ipp_tpl.indexOf("@"));
+						ipp2 = ipp_tpl.substring(ipp_tpl.indexOf("@")+1);
+					} 
 					
 					//If command is replace and new string is not empty string then
 					if(request.getParameter("replace") != null 
@@ -232,6 +289,9 @@ public class Project1 extends HttpServlet {
 						if(request.getParameter("cmd").equals("logout")) {
 							c[i].setMaxAge(0); //Set cookie expiration time to 0
 							response.addCookie(c[i]); //Send new cookie
+							
+							//Remove
+							RPCClientStub(4,session_id_c,sv1,ipp1,ipp2);
 							
 							RemoveCookie(session_id_c); //Remove entry from session table
 														
