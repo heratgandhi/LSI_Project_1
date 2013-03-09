@@ -281,6 +281,10 @@ public class Project1 extends HttpServlet {
 		String msg1;
 		String session_id_c;
 		
+		if(request.getParameter("cmd") != null && request.getParameter("cmd") == "error") {
+			return;
+		}
+		
 		/*
 		 * If the current request is first request from the client then
 		 * it won't have any cookie. If client's cookie is expired then 

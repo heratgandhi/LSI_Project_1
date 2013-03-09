@@ -33,7 +33,7 @@
 		if(c != null) {
 			for (int i=0;i<c.length;i++) {
 				if(c[i].getName().equals("CS5300PROJ1SESSIONSVH")) {
-					msg = c[i].getValue().substring(c[i].getValue().lastIndexOf("#")+1);
+					msg = c[i].getValue().substring(c[i].getValue().lastIndexOf("#")+1,c[i].getValue().indexOf("@"));
 					maxage = c[i].getMaxAge();
 				}
 			}
@@ -46,9 +46,10 @@
 			out.println("</form></tr>");
 			out.println("<tr><td><a href='"+ request.getContextPath() +"/Project1?cmd=refresh'><button>Refresh</button></a></td></tr>");
 			out.println("<tr><td><a href='"+ request.getContextPath() +"/Project1?cmd=logout'><button>Logout</button></a></td></tr>");
+			out.println("<tr><td><a href='"+ request.getContextPath() +"/Project1?cmd=error'><button>Stop Server</button></a></td></tr>");
 			out.println("</table>");
 
-			out.println("Session expires on: "+ new Timestamp( new Date().getTime() + (Project1.minutes * 60 * 1000) ));
+			out.println("Session expires on: "+ new Timestamp( new Date().getTime() + (1 * 60 * 1000) ));
 			out.println("<br/>Server IP:" + serverIP);
 			out.println("<br/>Port:"+request.getLocalPort());
 		} else {
