@@ -55,8 +55,13 @@ public class Project1 extends HttpServlet {
     }
     
     public void init() {
-    	RPCServer rpcServerT = new RPCServer();
-    	rpcServerT.start();
+    	try {
+    		RPCServer rpcServerT = new RPCServer();
+	    	rpcServerT.start();
+	    	Thread.sleep(500);
+    	} catch (Exception e) {
+    		e.printStackTrace();
+    	}
     }
     
     /**

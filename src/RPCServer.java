@@ -11,12 +11,15 @@ public class RPCServer extends Thread {
 	public void run() {
 		try {
 			DatagramSocket server = new DatagramSocket();
+			
+			
 			byte[] data = new byte[512];
 			while(true) {
 				DatagramPacket receivePacket = new DatagramPacket(data, data.length);
+				Project1.port_udp = server.getLocalPort();
 				server.receive(receivePacket);
 				
-				Project1.port_udp = server.getPort();
+				
 				
 				String[] packetList = receivePacket.getData().toString().split("#");
 				int opcode = Integer.parseInt(packetList[1]);
