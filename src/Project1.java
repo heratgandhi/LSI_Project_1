@@ -104,7 +104,7 @@ public class Project1 extends HttpServlet {
     String RPCClientStub(int opcode, String sessionid, SessionValue sv, String ipp1, String ipp2) {
 		try {		    
 			switch(opcode) {
-				case 1:
+				/*case 2:
 					//Session Write- First Request
 					byte[] outBuf;
 					byte[] inBuf = new byte[512];
@@ -128,8 +128,8 @@ public class Project1 extends HttpServlet {
 					} catch(Exception e) {
 						mbrSet.remove(ipp);
 					}
-				break;
-				case 2:
+				break;*/
+				case 1:
 					//Session Read
 					byte[] outBuf_r;
 					byte[] inBuf_r = new byte[512];
@@ -179,16 +179,27 @@ public class Project1 extends HttpServlet {
 					}
 					
 				break;
-				case 3:
-					//Session Update
+				case 2:
+					//Session Update or write
 					byte[] outBuf_u;
 					byte[] inBuf_u = new byte[512];
 					int call_id_u = (int)(Math.random() * 1000);
 					String packetS4_u = call_id_u + "#" + opcode + "#" + sessionid + "#" + sv.message + "#" + sv.version_number + "#" + sv.time_stamp;
 					outBuf_u = packetS4_u.getBytes();
 					
-					InetAddress ipA4_u = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
-					int portA4_u = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
+					InetAddress ipA4_u = null;
+					int portA4_u;
+					
+					if(ipp1 != "") {
+						ipA4_u = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
+						portA4_u = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
+					} else {
+						int randomNode = (int)(Math.random() * mbrSet.size());
+						String ipp = mbrSet.get(randomNode);
+						ipA4_u = InetAddress.getByName(ipp.substring(0,ipp.indexOf(':')));
+						portA4_u = Integer.parseInt(ipp.substring(ipp.indexOf(':')+1));
+					}
+					
 					
 					InetAddress ipA42_u = null;
 					int portA42_u = 0;
@@ -224,13 +235,13 @@ public class Project1 extends HttpServlet {
 						}
 					}
 				break;
-				case 4:
+				case 3:
 					//Session Delete
 					byte[] outBuf4;
 					byte[] inBuf4 = new byte[512];
 					int call_id4 = (int)(Math.random() * 1000);
 					String packetS4 = call_id4 + "#" + opcode + "#" + sessionid;
-					outBuf = packetS4.getBytes();
+					outBuf4 = packetS4.getBytes();
 					
 					InetAddress ipA4 = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
 					int portA4 = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
@@ -244,7 +255,7 @@ public class Project1 extends HttpServlet {
 					
 					try {
 						DatagramSocket clientSocket = new DatagramSocket();
-						DatagramPacket sendPacket = new DatagramPacket(outBuf, outBuf.length, ipA4, portA4);
+						DatagramPacket sendPacket = new DatagramPacket(outBuf4, outBuf4.length, ipA4, portA4);
 					    clientSocket.send(sendPacket);
 					    
 					    clientSocket.setSoTimeout(wait_time_seconds * 1000);
@@ -257,7 +268,7 @@ public class Project1 extends HttpServlet {
 					if(ipp2 != "") {
 						try {
 							DatagramSocket clientSocket = new DatagramSocket();
-							DatagramPacket sendPacket = new DatagramPacket(outBuf, outBuf.length, ipA42, portA42);
+							DatagramPacket sendPacket = new DatagramPacket(outBuf4, outBuf4.length, ipA42, portA42);
 						    clientSocket.send(sendPacket);
 						    
 						    clientSocket.setSoTimeout(wait_time_seconds * 1000);
@@ -314,7 +325,7 @@ public class Project1 extends HttpServlet {
 			sessionTable.put(session_id, sv);
 			
 			if(mbrSet.size() != 0) {
-				backup_n = RPCClientStub(1,session_id,sv,"","");
+				backup_n = RPCClientStub(2,session_id,sv,"","");
 				location_data += "@" + backup_n;
 			}
 			
@@ -355,7 +366,7 @@ public class Project1 extends HttpServlet {
 					//### If session data is not available here then go and fetch from other servers
 					SessionValue sv1 = (SessionValue) sessionTable.get(session_id_c);
 					if(sv1 == null) {
-						String sv1_data = RPCClientStub(2, session_id_c, null, ipp1, ipp2);
+						String sv1_data = RPCClientStub(1, session_id_c, null, ipp1, ipp2);
 						sv1 = new SessionValue();
 						//call_id + "#" + sessionid + "#" + sv.message + "#" + sv.version_number + "#" + sv.time_stamp
 						for(int jj = 0; jj < 5; jj++) {
@@ -416,7 +427,7 @@ public class Project1 extends HttpServlet {
 							response.addCookie(c[i]); //Send new cookie
 							
 							//Remove
-							RPCClientStub(4,session_id_c,sv1,ipp1,ipp2);
+							RPCClientStub(3,session_id_c,sv1,ipp1,ipp2);
 							
 							RemoveCookie(session_id_c); //Remove entry from session table
 														
@@ -429,7 +440,7 @@ public class Project1 extends HttpServlet {
 						}
 				}
 				
-				RPCClientStub(3, session_id_c, sv1, ipp1, ipp2);
+				RPCClientStub(2, session_id_c, sv1, ipp1, ipp2);
 					
 				//Update entry in the session table	
 				sv1.time_stamp = new Date().getTime() + (minutes * 60 * 1000); 
