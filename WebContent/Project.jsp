@@ -33,7 +33,8 @@
 		if(c != null) {
 			for (int i=0;i<c.length;i++) {
 				if(c[i].getName().equals("CS5300PROJ1SESSIONSVH")) {
-					msg = c[i].getValue().substring(c[i].getValue().lastIndexOf("#")+1,c[i].getValue().indexOf("@"));
+					String[] parts = c[i].getValue().split("#");
+					msg = parts[2];
 					maxage = c[i].getMaxAge();
 				}
 			}

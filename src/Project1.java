@@ -14,6 +14,10 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.*;
+
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
@@ -35,10 +39,10 @@ class SessionValue {
  * Servlet implementation class Project1
  * This class handles all the user interaction using doGet method.
  */
-public class Project1 extends HttpServlet {
+public class Project1 extends HttpServlet implements ServletContextListener {
 	private static final long serialVersionUID = 1L;
 	public static final int minutes = 1;
-	public static final int wait_time_seconds = 10;
+	public static final int wait_time_seconds = 100;
 	
 	//Hash Table sessionTable is used to store session data
 	public static ConcurrentHashMap<String,SessionValue> sessionTable = new ConcurrentHashMap<String,SessionValue>(100);
@@ -54,15 +58,28 @@ public class Project1 extends HttpServlet {
         // TODO Auto-generated constructor stub
     }
     
-    public void init() {
+    public void init(ServletConfig config) {
     	try {
-    		RPCServer rpcServerT = new RPCServer();
-	    	rpcServerT.start();
-	    	Thread.sleep(500);
+    		super.init(config);
+    		//RPCServer rpcServerT = new RPCServer();
+	    	//rpcServerT.start();
+	    	Thread.sleep(100);
     	} catch (Exception e) {
     		e.printStackTrace();
     	}
     }
+    
+    private ExecutorService executor;
+    
+    public void contextInitialized(ServletContextEvent event) {
+        executor = Executors.newSingleThreadExecutor();
+        executor.submit(new RPCServer());
+    }
+
+    public void contextDestroyed(ServletContextEvent event) {
+        executor.shutdown();
+    }
+
     
     /**
      * RemoveCookie method
@@ -101,7 +118,7 @@ public class Project1 extends HttpServlet {
 		}
     }
     
-    String RPCClientStub(int opcode, String sessionid, SessionValue sv, String ipp1, String ipp2) {
+    String RPCClientStub(int opcode, String sessionid, SessionValue sv, String ipp1, String ipp2, String version) {
 		try {		    
 			switch(opcode) {
 				/*case 2:
@@ -135,10 +152,13 @@ public class Project1 extends HttpServlet {
 					byte[] inBuf_r = new byte[512];
 					byte[] inBuf_r1 = new byte[512];
 					int call_id_r = (int)(Math.random() * 1000);
-					String packetS_r = call_id_r + "#" + opcode + "#" + sessionid;
+					String packetS_r = call_id_r + "#" + opcode + "#" + sessionid + "#" + version.trim();
 					outBuf_r = packetS_r.getBytes();
 					
 					InetAddress ipA_r1 = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
+					
+					System.out.println(ipA_r1.getHostAddress());
+					
 					int portA_r1 = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
 					
 					InetAddress ipA_r2 = null;
@@ -157,7 +177,7 @@ public class Project1 extends HttpServlet {
 					    
 					    DatagramPacket receivePacket = new DatagramPacket(inBuf_r, inBuf_r.length);
 					    clientSocket.receive(receivePacket);
-					    return new String(inBuf_r);
+					    return new String(inBuf_r,0,receivePacket.getLength());
 					} catch(Exception e) {
 						mbrSet.remove(ipp1);
 					}
@@ -240,7 +260,7 @@ public class Project1 extends HttpServlet {
 					byte[] outBuf4;
 					byte[] inBuf4 = new byte[512];
 					int call_id4 = (int)(Math.random() * 1000);
-					String packetS4 = call_id4 + "#" + opcode + "#" + sessionid;
+					String packetS4 = call_id4 + "#" + opcode + "#" + sessionid + "#" + version;
 					outBuf4 = packetS4.getBytes();
 					
 					InetAddress ipA4 = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
@@ -325,8 +345,8 @@ public class Project1 extends HttpServlet {
 			sessionTable.put(session_id, sv);
 			
 			if(mbrSet.size() != 0) {
-				backup_n = RPCClientStub(2,session_id,sv,"","");
-				location_data += "@" + backup_n;
+				backup_n = RPCClientStub(2,session_id,sv,"","","");
+				location_data += "#" + backup_n;
 			}
 			
 			msg = "Welcome for the first time..."; //Default message
@@ -334,7 +354,7 @@ public class Project1 extends HttpServlet {
 			String message_var = msg;
 			
 			//Create cookie value
-			String message = session_id + "#" + version_no + "#" + message_var + "@" + location_data; 
+			String message = session_id + "#" + version_no + "#" + message_var + "#" + location_data; 
 			
 			Cookie ck = new Cookie("CS5300PROJ1SESSIONSVH",message);
 			//Currently session timeout period is of 1 minute.
@@ -355,47 +375,37 @@ public class Project1 extends HttpServlet {
 			for (int i=0;i<c.length;i++) {
 				if(c[i].getName().equals("CS5300PROJ1SESSIONSVH")) {
 					//Get session id from cookie
-					session_id_c = c[i].getValue().substring(0,c[i].getValue().indexOf("#"));
+					String[] parts = c[i].getValue().split("#"); 
+					session_id_c = parts[0];
 					
-					String ipp_tpl = c[i].getValue().substring(c[i].getValue().indexOf("@")+1);
-					String ipp1 = "";
+					String ipp1 = parts[3];
 					String ipp2 = "";
-					ipp1 = ipp_tpl;
+					if(parts.length > 4)
+						ipp2 = parts[4];
 					
 					//Get session value corresponding to the above session id
 					//### If session data is not available here then go and fetch from other servers
 					SessionValue sv1 = (SessionValue) sessionTable.get(session_id_c);
 					if(sv1 == null) {
-						String sv1_data = RPCClientStub(1, session_id_c, null, ipp1, ipp2);
+						String sv1_data = RPCClientStub(1, session_id_c, null, ipp1, ipp2, parts[1] );
 						sv1 = new SessionValue();
-						//call_id + "#" + sessionid + "#" + sv.message + "#" + sv.version_number + "#" + sv.time_stamp
-						for(int jj = 0; jj < 5; jj++) {
-							if(jj < 2) {
-								 sv1_data = sv1_data.substring(sv1_data.indexOf("#")+1);
-							}
-							else if(jj == 2) {
-								sv1.message = sv1_data.substring(0,sv1_data.indexOf("#"));								
-							}
-							else if(jj == 3) {
-								sv1.version_number = sv1_data.substring(0,sv1_data.indexOf("#"));								
-							}
-							else if(jj == 4) {
-								sv1.time_stamp = Long.parseLong(sv1_data.substring(0,sv1_data.indexOf("#")));								
-							}
-							sv1_data = sv1_data.substring(sv1_data.indexOf("#")+1);
-						}
+						
+						String[] parts1 = sv1_data.split("#");
+						sv1.message = parts1[2];
+						sv1.version_number = parts1[3];
+						sv1.time_stamp = Long.parseLong(parts1[4]);
 						sessionTable.put(session_id_c, sv1);
 					}
 					
 					//Get message value from cookie
-					msg = c[i].getValue().substring(c[i].getValue().lastIndexOf("#")+1,c[i].getValue().indexOf("@"));
+					msg = parts[2];
 								
 					
-					//There is not another ipp in the cookie
+					/*There is not another ipp in the cookie
 					if(ipp_tpl.indexOf("@") != -1) {
 						ipp1 = ipp_tpl.substring(0,ipp_tpl.indexOf("@"));
 						ipp2 = ipp_tpl.substring(ipp_tpl.indexOf("@")+1);
-					} 
+					} */
 					
 					//If command is replace and new string is not empty string then
 					if(request.getParameter("replace") != null 
@@ -403,8 +413,11 @@ public class Project1 extends HttpServlet {
 						
 						//Get string value with which we want to replace the current message
 						msg1 = request.getParameter("replace");
-						c[i].setValue(c[i].getValue().substring( 0, c[i].getValue().lastIndexOf("#")+1) + msg1 + 
-								c[i].getValue().substring(c[i].getValue().lastIndexOf("@")));
+						String new_msg = parts[0]+"#"+parts[1]+"#"+msg1+"#"+parts[3];
+						if(parts.length > 4) {
+							new_msg += "#"+parts[4];
+						}
+						c[i].setValue(new_msg);
 						c[i].setMaxAge(60);
 						//Send updated cookie to the client
 						response.addCookie(c[i]);
@@ -427,7 +440,7 @@ public class Project1 extends HttpServlet {
 							response.addCookie(c[i]); //Send new cookie
 							
 							//Remove
-							RPCClientStub(3,session_id_c,sv1,ipp1,ipp2);
+							RPCClientStub(3,session_id_c,sv1,ipp1,ipp2,parts[1]);
 							
 							RemoveCookie(session_id_c); //Remove entry from session table
 														
@@ -440,7 +453,7 @@ public class Project1 extends HttpServlet {
 						}
 				}
 				
-				RPCClientStub(2, session_id_c, sv1, ipp1, ipp2);
+				RPCClientStub(2, session_id_c, sv1, ipp1, ipp2,"");
 					
 				//Update entry in the session table	
 				sv1.time_stamp = new Date().getTime() + (minutes * 60 * 1000); 

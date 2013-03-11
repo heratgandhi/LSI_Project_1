@@ -17,26 +17,33 @@ public class RPCServer extends Thread {
 			while(true) {
 				DatagramPacket receivePacket = new DatagramPacket(data, data.length);
 				Project1.port_udp = server.getLocalPort();
+				
+				System.out.println("Test running...111");
+				
 				server.receive(receivePacket);
 				
+				System.out.println("Test running...");
 				
-				
-				String[] packetList = receivePacket.getData().toString().split("#");
+				String[] packetList = new String(receivePacket.getData(),0,receivePacket.getLength()).split("#");
 				int opcode = Integer.parseInt(packetList[1]);
 				
 				InetAddress ipaddr = receivePacket.getAddress();
+				System.out.println(ipaddr);
 				int portNo = receivePacket.getPort();
+				System.out.println(portNo);
 				
-				if( Project1.mbrSet.indexOf(ipaddr.toString() + ":" + portNo) != -1 ) {
+				if( Project1.mbrSet.indexOf(ipaddr.toString() + ":" + portNo) == -1 ) {
 					Project1.mbrSet.add(ipaddr.toString() + ":" + portNo);
 				}
 				String packet = "";
-				byte[] output = new byte[512];
+				byte[] output = null;
 				SessionValue sv = new SessionValue();				
+				
+				System.out.println(packetList[2]+" "+Integer.parseInt(packetList[3]));
 				
 				switch(opcode) {
 					case 1: 
-						sv = sessionRead(packetList[2], Integer.parseInt(packetList[4]));
+						sv = sessionRead(packetList[2], Integer.parseInt(packetList[3]));
 						packet = packetList[0] + "#" + packetList[2] + "#" + sv.message + "#" + sv.version_number + "#" + sv.time_stamp; 
 						break;
 					
@@ -52,7 +59,7 @@ public class RPCServer extends Thread {
 						break;
 					
 					case 3:
-						if(sessionDelete(packetList[2], Integer.parseInt(packetList[4]))){
+						if(sessionDelete(packetList[2], Integer.parseInt(packetList[3]))){
 							packet = packetList[0] + "#" + "ACK";
 						} else {
 							packet = packetList[0] + "#" + "NAK";
@@ -78,7 +85,7 @@ public class RPCServer extends Thread {
 		}
 	}
 	
-	private SessionValue sessionRead(String SID, int version) {
+	SessionValue sessionRead(String SID, int version) {
 		if (Project1.sessionTable.containsKey(SID)) {
 			if (Integer.parseInt(Project1.sessionTable.get(SID).version_number) >= version) {
 				return Project1.sessionTable.get(SID);
