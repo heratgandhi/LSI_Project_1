@@ -345,7 +345,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 		 * refresh, replace and logout.
 		 */		
 		else if(c != null) {
-			
+			boolean action = false;
 			//Iterate through all cookies and find the cookie for our application
 			for (int i=0;i<c.length;i++) {
 				if(c[i].getName().equals("CS5300PROJ1SESSIONSVH")) {
@@ -398,7 +398,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						c[i].setMaxAge(minutes * 60);
 						//Send updated cookie to the client
 						response.addCookie(c[i]);
-						
+						action = true;
 						//Replace the message in the session table
 						sv1.message = msg1;
 					}
@@ -410,6 +410,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						String new_msg = parts[0] +"#"+ (Integer.parseInt(parts[1]) + 1) +"#"+ parts[2] +"#"+ parts[3];
 						c[i].setValue(new_msg);
 						//Send new cookie
+						action = true;
 						response.addCookie(c[i]);
 					}
 					//If command is logout then
@@ -431,6 +432,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 							c[i].setValue(new_msg);
 							c[i].setMaxAge(minutes * 60); //Update cookie expiration time
 							response.addCookie(c[i]); //Send new cookie
+							action = true;
 						}
 				}
 				
@@ -441,7 +443,12 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 				
 				sv1.version_number = (++vno) + ""; //Increment version number
 				RPCClientStub(2, session_id_c, sv1, ipp1, ipp2,"");
-					
+				if(!action) {
+					String new_msg1 = parts[0] +"#"+ (Integer.parseInt(parts[1]) + 1) +"#"+ parts[2] +"#"+ parts[3];
+					c[i].setValue(new_msg1);
+					c[i].setMaxAge(minutes * 60); //Update cookie expiration time
+					response.addCookie(c[i]); //Send new cookie
+				}
 				}
 			}
 		}
