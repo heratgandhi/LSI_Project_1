@@ -50,7 +50,7 @@
 			out.println("<tr><td><a href='"+ request.getContextPath() +"/Project1?cmd=error'><button>Stop Server</button></a></td></tr>");
 			out.println("</table>");
 
-			out.println("Session expires on: "+ new Timestamp( new Date().getTime() + (2 * 60 * 1000) ));
+			out.println("Session expires on: "+ new Timestamp( new Date().getTime() + (5 * 60 * 1000) ));
 			out.println("<br/>Server IP:" + serverIP);
 			out.println("<br/>Port:"+request.getLocalPort());
 		} else {

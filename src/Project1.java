@@ -41,7 +41,7 @@ class SessionValue {
  */
 public class Project1 extends HttpServlet implements ServletContextListener {
 	private static final long serialVersionUID = 1L;
-	public static final int minutes = 2;
+	public static final int minutes = 5;
 	public static final int wait_time_seconds = 100;
 	
 	//Hash Table sessionTable is used to store session data
@@ -61,7 +61,9 @@ public class Project1 extends HttpServlet implements ServletContextListener {
     public void init(ServletConfig config) {
     	try {
     		super.init(config);
-    		Thread.sleep(100);
+    		//RPCServer rpcServerT = new RPCServer();
+	    	//rpcServerT.start();
+	    	Thread.sleep(100);
     	} catch (Exception e) {
     		e.printStackTrace();
     	}
@@ -110,7 +112,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 		     * expiration time, if yes then remove that entry from session
 		     * table.
 		     */
-		    if (entry.getValue().time_stamp < new Date().getTime()) {
+		    if (entry.getValue().time_stamp + 4000 < new Date().getTime()) {
 		        itr.remove();
 		    }
 		}
@@ -331,7 +333,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 			
 			Cookie ck = new Cookie("CS5300PROJ1SESSIONSVH",message);
 			//Currently session timeout period is of 1 minute.
-			ck.setMaxAge(60);
+			ck.setMaxAge(minutes * 60);
 			//Send cookie to the client
 			response.addCookie(ck);
 						
@@ -363,6 +365,8 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						String sv1_data = RPCClientStub(1, session_id_c, null, ipp1, ipp2, parts[1] );
 						sv1 = new SessionValue();
 						
+						System.out.println("data:" + sv1_data);
+						
 						String[] parts1 = sv1_data.split("#");
 						sv1.message = parts1[2];
 						sv1.version_number = parts1[3];
@@ -386,12 +390,12 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						
 						//Get string value with which we want to replace the current message
 						msg1 = request.getParameter("replace");
-						String new_msg = parts[0]+"#"+parts[1]+"#"+msg1+"#"+parts[3];
+						String new_msg = parts[0]+"#"+ (Integer.parseInt(parts[1]) + 1) +"#"+msg1+"#"+parts[3];
 						if(parts.length > 4) {
 							new_msg += "#"+parts[4];
 						}
 						c[i].setValue(new_msg);
-						c[i].setMaxAge(60);
+						c[i].setMaxAge(minutes * 60);
 						//Send updated cookie to the client
 						response.addCookie(c[i]);
 						
@@ -402,7 +406,9 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					if(request.getParameter("replace") != null && 
 							request.getParameter("replace").trim().equals("")) {
 						//Update cookie expiration value
-						c[i].setMaxAge(60);
+						c[i].setMaxAge(minutes * 60);
+						String new_msg = parts[0] +"#"+ (Integer.parseInt(parts[1]) + 1) +"#"+ parts[2] +"#"+ parts[3];
+						c[i].setValue(new_msg);
 						//Send new cookie
 						response.addCookie(c[i]);
 					}
@@ -421,19 +427,20 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						}
 						//If command is refresh then
 						if(request.getParameter("cmd").equals("refresh")) {
-							c[i].setMaxAge(60); //Update cookie expiration time
+							String new_msg = parts[0] +"#"+ (Integer.parseInt(parts[1]) + 1) +"#"+ parts[2] +"#"+ parts[3];
+							c[i].setValue(new_msg);
+							c[i].setMaxAge(minutes * 60); //Update cookie expiration time
 							response.addCookie(c[i]); //Send new cookie
 						}
 				}
 				
-				RPCClientStub(2, session_id_c, sv1, ipp1, ipp2,"");
-					
 				//Update entry in the session table	
 				sv1.time_stamp = new Date().getTime() + (minutes * 60 * 1000); 
 				
 				int vno = Integer.parseInt(sv1.version_number);
 				
 				sv1.version_number = (++vno) + ""; //Increment version number
+				RPCClientStub(2, session_id_c, sv1, ipp1, ipp2,"");
 					
 				}
 			}
