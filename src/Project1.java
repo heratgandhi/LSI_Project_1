@@ -41,7 +41,7 @@ class SessionValue {
  */
 public class Project1 extends HttpServlet implements ServletContextListener {
 	private static final long serialVersionUID = 1L;
-	public static final int minutes = 1;
+	public static final int minutes = 2;
 	public static final int wait_time_seconds = 100;
 	
 	//Hash Table sessionTable is used to store session data
@@ -61,9 +61,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
     public void init(ServletConfig config) {
     	try {
     		super.init(config);
-    		//RPCServer rpcServerT = new RPCServer();
-	    	//rpcServerT.start();
-	    	Thread.sleep(100);
+    		Thread.sleep(100);
     	} catch (Exception e) {
     		e.printStackTrace();
     	}
@@ -121,31 +119,6 @@ public class Project1 extends HttpServlet implements ServletContextListener {
     String RPCClientStub(int opcode, String sessionid, SessionValue sv, String ipp1, String ipp2, String version) {
 		try {		    
 			switch(opcode) {
-				/*case 2:
-					//Session Write- First Request
-					byte[] outBuf;
-					byte[] inBuf = new byte[512];
-					int call_id = (int)(Math.random() * 1000);
-					String packetS = call_id + "#" + opcode + "#" + sessionid + "#" + sv.message + "#" + sv.version_number + "#" + sv.time_stamp;
-					outBuf = packetS.getBytes();
-					int randomNode = (int)(Math.random() * mbrSet.size());
-					String ipp = mbrSet.get(randomNode);
-					InetAddress ipA = InetAddress.getByName(ipp.substring(0,ipp.indexOf(':')));
-					int portA = Integer.parseInt(ipp.substring(ipp.indexOf(':')+1));
-					//Send to randomNode
-					try {
-						DatagramSocket clientSocket = new DatagramSocket();
-						DatagramPacket sendPacket = new DatagramPacket(outBuf, outBuf.length, ipA, portA);
-					    clientSocket.send(sendPacket);
-					    
-					    clientSocket.setSoTimeout(wait_time_seconds * 1000);
-					    
-					    DatagramPacket receivePacket = new DatagramPacket(inBuf, inBuf.length);
-					    clientSocket.receive(receivePacket);				    
-					} catch(Exception e) {
-						mbrSet.remove(ipp);
-					}
-				break;*/
 				case 1:
 					//Session Read
 					byte[] outBuf_r;
