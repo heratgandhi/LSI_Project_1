@@ -34,7 +34,7 @@ public class RPCServer extends Thread {
 				byte[] output = null;
 				SessionValue sv = new SessionValue();				
 				
-				System.out.println(packetList[2]+" "+Integer.parseInt(packetList[3]));
+				//System.out.println(packetList[2]+" "+Integer.parseInt(packetList[3]));
 				
 				switch(opcode) {
 					case 1: 

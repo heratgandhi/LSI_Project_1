@@ -41,7 +41,7 @@ class SessionValue {
  */
 public class Project1 extends HttpServlet implements ServletContextListener {
 	private static final long serialVersionUID = 1L;
-	public static final int minutes = 10;
+	public static final int minutes = 5;
 	public static final int wait_time_seconds = 2;
 	
 	//Hash Table sessionTable is used to store session data
@@ -420,6 +420,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					
 					if(sv1 == null || (sv1 != null && Integer.parseInt(sv1.version_number) < Integer.parseInt(parts[1]))) {
 						String sv1_data = RPCClientStub(1, session_id_c, null, ipp1, ipp2, parts[1] );
+						
 						if (sv1_data == null) {
 							response.sendRedirect(request.getContextPath() + "/ErrorPage.jsp");
 							redirect = true;
@@ -432,7 +433,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 							sv1.message = parts1[2];
 							sv1.version_number = parts1[3];
 							sv1.time_stamp = Long.parseLong(parts1[4]);
-							sessionTable.put(session_id_c, sv1);
+							//sessionTable.put(session_id_c, sv1);
 						}
 					}
 					
@@ -505,17 +506,6 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						}
 				}
 				
-				if (mbrSet.size() > 0) {
-					if((InetAddress.getLocalHost().getHostAddress() + ":" + port_udp).equals(ipp1)) {
-						RPCClientStub(2,session_id_c,sv1,"",ipp2,"");
-					}
-					else if((InetAddress.getLocalHost().getHostAddress() + ":" + port_udp).equals(ipp2)) {
-						RPCClientStub(2,session_id_c,sv1,ipp1,"","");
-					}
-					else RPCClientStub(2,session_id_c,sv1,ipp1,ipp2,"");
-					
-				}
-				
 				if(sv1 != null) {
 					//Update entry in the session table	
 					sv1.time_stamp = new Date().getTime() + (minutes * 60 * 1000); 
@@ -531,6 +521,16 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						response.addCookie(c[i]);
 					}
 					sessionTable.put(session_id_c, sv1);
+				}
+				if (mbrSet.size() > 0) {
+					if((InetAddress.getLocalHost().getHostAddress() + ":" + port_udp).equals(ipp1)) {
+						RPCClientStub(2,session_id_c,sv1,"",ipp2,"");
+					}
+					else if((InetAddress.getLocalHost().getHostAddress() + ":" + port_udp).equals(ipp2)) {
+						RPCClientStub(2,session_id_c,sv1,ipp1,"","");
+					}
+					else RPCClientStub(2,session_id_c,sv1,ipp1,ipp2,"");
+					
 				}
 				}
 			}
