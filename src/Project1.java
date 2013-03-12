@@ -41,8 +41,8 @@ class SessionValue {
  */
 public class Project1 extends HttpServlet implements ServletContextListener {
 	private static final long serialVersionUID = 1L;
-	public static final int minutes = 5;
-	public static final int wait_time_seconds = 100;
+	public static final int minutes = 10;
+	public static final int wait_time_seconds = 2;
 	
 	//Hash Table sessionTable is used to store session data
 	public static ConcurrentHashMap<String,SessionValue> sessionTable = new ConcurrentHashMap<String,SessionValue>(100);
@@ -50,7 +50,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 	public static ArrayList<String> mbrSet = new ArrayList<String>();
 	
 	public static int port_udp;
-	
+	RPCServer rpc;
 	/**
      * Default constructor. 
      */
@@ -61,9 +61,9 @@ public class Project1 extends HttpServlet implements ServletContextListener {
     public void init(ServletConfig config) {
     	try {
     		super.init(config);
-    		//RPCServer rpcServerT = new RPCServer();
-	    	//rpcServerT.start();
-	    	Thread.sleep(100);
+    		rpc = new RPCServer();
+    		rpc.start();
+    		Thread.sleep(100);
     	} catch (Exception e) {
     		e.printStackTrace();
     	}
@@ -127,21 +127,12 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					byte[] inBuf_r = new byte[512];
 					byte[] inBuf_r1 = new byte[512];
 					int call_id_r = (int)(Math.random() * 1000);
-					String packetS_r = call_id_r + "#" + opcode + "#" + sessionid + "#" + version.trim();
+					String packetS_r = call_id_r + "#" + opcode + "#" + sessionid + "#" + version.trim() + "#" + port_udp;
 					outBuf_r = packetS_r.getBytes();
 					
 					InetAddress ipA_r1 = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
 					
-					System.out.println(ipA_r1.getHostAddress());
-					
 					int portA_r1 = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
-					
-					InetAddress ipA_r2 = null;
-					int portA_r2 = 0;
-					if(ipp2 != "") {
-						ipA_r2 = InetAddress.getByName(ipp2.substring(0,ipp1.indexOf(':')));
-						portA_r2 = Integer.parseInt(ipp2.substring(ipp1.indexOf(':')+1));
-					}
 					
 					try {
 						DatagramSocket clientSocket = new DatagramSocket();
@@ -157,7 +148,12 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						mbrSet.remove(ipp1);
 					}
 					
+					InetAddress ipA_r2 = null;
+					int portA_r2 = 0;
 					if(ipp2 != "") {
+						ipA_r2 = InetAddress.getByName(ipp2.substring(0,ipp2.indexOf(':')));
+						portA_r2 = Integer.parseInt(ipp2.substring(ipp2.indexOf(':')+1));
+					
 						try {
 							DatagramSocket clientSocket = new DatagramSocket();
 							DatagramPacket sendPacket = new DatagramPacket(outBuf_r, outBuf_r.length, ipA_r2, portA_r2);
@@ -170,52 +166,42 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						    return new String(inBuf_r1);
 						} catch(Exception e) {
 							mbrSet.remove(ipp2);
+							return null;
 						}
-					}
+					} else return null;
 					
-				break;
 				case 2:
 					//Session Update or write
 					byte[] outBuf_u;
 					byte[] inBuf_u = new byte[512];
 					int call_id_u = (int)(Math.random() * 1000);
-					String packetS4_u = call_id_u + "#" + opcode + "#" + sessionid + "#" + sv.message + "#" + sv.version_number + "#" + sv.time_stamp;
+					String packetS4_u = call_id_u + "#" + opcode + "#" + sessionid + "#" + sv.message + "#" + sv.version_number + "#" + sv.time_stamp + "#" + port_udp;
 					outBuf_u = packetS4_u.getBytes();
-					
-					InetAddress ipA4_u = null;
-					int portA4_u;
+					String ack = "NAK"; 
 					
 					if(ipp1 != "") {
-						ipA4_u = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
-						portA4_u = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
-					} else {
-						int randomNode = (int)(Math.random() * mbrSet.size());
-						String ipp = mbrSet.get(randomNode);
-						ipA4_u = InetAddress.getByName(ipp.substring(0,ipp.indexOf(':')));
-						portA4_u = Integer.parseInt(ipp.substring(ipp.indexOf(':')+1));
-					}
+						InetAddress ipA4_u = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
+						int portA4_u = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
+						try {
+							DatagramSocket clientSocket = new DatagramSocket();
+							DatagramPacket sendPacket = new DatagramPacket(outBuf_u, outBuf_u.length, ipA4_u, portA4_u);
+						    clientSocket.send(sendPacket);
+						    
+						    clientSocket.setSoTimeout(wait_time_seconds * 1000);
+						    
+						    DatagramPacket receivePacket = new DatagramPacket(inBuf_u, inBuf_u.length);
+						    clientSocket.receive(receivePacket);
+						    String[] packetList = new String(receivePacket.getData(),0,receivePacket.getLength()).split("#");
+						    ack = packetList[1];
+						} catch(Exception e) {
+							mbrSet.remove(ipp1);
+							ack = "NAK";
+						}
+					} 
 					
-					
-					InetAddress ipA42_u = null;
-					int portA42_u = 0;
-					if(ipp2 != "") {
-						ipA42_u = InetAddress.getByName(ipp2.substring(0,ipp1.indexOf(':')));
-						portA42_u = Integer.parseInt(ipp2.substring(ipp1.indexOf(':')+1));
-					}
-					
-					try {
-						DatagramSocket clientSocket = new DatagramSocket();
-						DatagramPacket sendPacket = new DatagramPacket(outBuf_u, outBuf_u.length, ipA4_u, portA4_u);
-					    clientSocket.send(sendPacket);
-					    
-					    clientSocket.setSoTimeout(wait_time_seconds * 1000);
-					    
-					    DatagramPacket receivePacket = new DatagramPacket(inBuf_u, inBuf_u.length);
-					    clientSocket.receive(receivePacket);				    
-					} catch(Exception e) {
-						mbrSet.remove(ipp1);
-					}
-					if(ipp2 != "") {
+					if(ack.equals("NAK") && ipp2 != "") {
+						InetAddress ipA42_u = InetAddress.getByName(ipp2.substring(0,ipp2.indexOf(':')));
+						int portA42_u = Integer.parseInt(ipp2.substring(ipp2.indexOf(':')+1));
 						try {
 							DatagramSocket clientSocket = new DatagramSocket();
 							DatagramPacket sendPacket = new DatagramPacket(outBuf_u, outBuf_u.length, ipA42_u, portA42_u);
@@ -224,10 +210,37 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						    clientSocket.setSoTimeout(wait_time_seconds * 1000);
 						    
 						    DatagramPacket receivePacket = new DatagramPacket(inBuf_u, inBuf_u.length);
-						    clientSocket.receive(receivePacket);				    
+						    clientSocket.receive(receivePacket);
+						    String[] packetList = new String(receivePacket.getData(),0,receivePacket.getLength()).split("#");
+						    ack = packetList[1];
 						} catch(Exception e) {
 							mbrSet.remove(ipp2);
+							ack = "NAK";
 						}
+					}
+					if (ack.equals("NAK") && mbrSet.size() > 0) {
+						int randomNode;
+						InetAddress ipA4_u;
+						int portA4_u;
+						do{
+							randomNode = (int)(Math.random() * mbrSet.size());
+							String ipp = mbrSet.get(randomNode);
+							ipA4_u = InetAddress.getByName(ipp.substring(0,ipp.indexOf(':')));
+							portA4_u = Integer.parseInt(ipp.substring(ipp.indexOf(':')+1));
+							try{
+								DatagramSocket clientSocket = new DatagramSocket();
+								DatagramPacket sendPacket = new DatagramPacket(outBuf_u, outBuf_u.length, ipA4_u, portA4_u);
+							    clientSocket.send(sendPacket);
+							    
+							    clientSocket.setSoTimeout(wait_time_seconds * 1000);
+							    
+							    DatagramPacket receivePacket = new DatagramPacket(inBuf_u, inBuf_u.length);
+							    clientSocket.receive(receivePacket);
+							} catch (Exception e) {
+								mbrSet.remove(ipp);
+							}
+						}while(mbrSet.size() > 0);
+						
 					}
 				break;
 				case 3:
@@ -235,32 +248,30 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					byte[] outBuf4;
 					byte[] inBuf4 = new byte[512];
 					int call_id4 = (int)(Math.random() * 1000);
-					String packetS4 = call_id4 + "#" + opcode + "#" + sessionid + "#" + version;
+					String packetS4 = call_id4 + "#" + opcode + "#" + sessionid + "#" + version + "#" + port_udp;
 					outBuf4 = packetS4.getBytes();
-					
-					InetAddress ipA4 = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
-					int portA4 = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
-					
-					InetAddress ipA42 = null;
-					int portA42 = 0;
-					if(ipp2 != "") {
-						ipA42 = InetAddress.getByName(ipp2.substring(0,ipp1.indexOf(':')));
-						portA42 = Integer.parseInt(ipp2.substring(ipp1.indexOf(':')+1));
-					}
-					
-					try {
-						DatagramSocket clientSocket = new DatagramSocket();
-						DatagramPacket sendPacket = new DatagramPacket(outBuf4, outBuf4.length, ipA4, portA4);
-					    clientSocket.send(sendPacket);
-					    
-					    clientSocket.setSoTimeout(wait_time_seconds * 1000);
-					    
-					    DatagramPacket receivePacket = new DatagramPacket(inBuf4, inBuf4.length);
-					    clientSocket.receive(receivePacket);				    
-					} catch(Exception e) {
-						mbrSet.remove(ipp1);
+					InetAddress ipA4;
+					int portA4;
+					if (!ipp1.equals("")) {
+						ipA4 = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
+						portA4 = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
+						
+						try {
+							DatagramSocket clientSocket = new DatagramSocket();
+							DatagramPacket sendPacket = new DatagramPacket(outBuf4, outBuf4.length, ipA4, portA4);
+						    clientSocket.send(sendPacket);
+						    
+						    clientSocket.setSoTimeout(wait_time_seconds * 1000);
+						    
+						    DatagramPacket receivePacket = new DatagramPacket(inBuf4, inBuf4.length);
+						    clientSocket.receive(receivePacket);				    
+						} catch(Exception e) {
+							mbrSet.remove(ipp1);
+						}
 					}
 					if(ipp2 != "") {
+						InetAddress ipA42 = InetAddress.getByName(ipp2.substring(0,ipp2.indexOf(':')));
+						int portA42 = Integer.parseInt(ipp2.substring(ipp2.indexOf(':')+1));
 						try {
 							DatagramSocket clientSocket = new DatagramSocket();
 							DatagramPacket sendPacket = new DatagramPacket(outBuf4, outBuf4.length, ipA42, portA42);
@@ -275,6 +286,33 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						}
 					}
 				break;
+				case 4:
+					byte[] outBuf5;
+					byte[] inBuf5 = new byte[512];
+					int call_id5 = (int)(Math.random() * 1000);
+					String packetS5 = call_id5 + "#" + opcode + "#" + version + "#" + port_udp;
+					outBuf5 = packetS5.getBytes();
+					ipA4 = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
+					portA4 = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
+					
+					try {
+						DatagramSocket clientSocket = new DatagramSocket();
+						DatagramPacket sendPacket = new DatagramPacket(outBuf5, outBuf5.length, ipA4, portA4);
+					    clientSocket.send(sendPacket);
+					    
+					    clientSocket.setSoTimeout(wait_time_seconds * 1000);
+					    
+					    DatagramPacket receivePacket = new DatagramPacket(inBuf5, inBuf5.length);
+					    clientSocket.receive(receivePacket);	
+					    String[] packetList = new String(receivePacket.getData(),0,receivePacket.getLength()).split("#");
+					    for(String s : packetList) {
+					    	mbrSet.add(s);
+					    }
+					} catch(Exception e) {
+						//mbrSet.remove(ipp1);
+					}
+					break;
+					
 			}
 		} catch(Exception ioe) {
 		}
@@ -291,6 +329,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 		String msg = "";
 		String msg1;
 		String session_id_c;
+		boolean redirect = false;
 		
 		if(request.getParameter("cmd") != null && request.getParameter("cmd") == "error") {
 			return;
@@ -339,12 +378,14 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						
 			//Remove any expired session entry from the session table
 			RemoveExpiredCookie();
+			
 		}
 		/*
 		 * If client's request has some cookie with it then process the cookie based on various events like
 		 * refresh, replace and logout.
 		 */		
 		else if(c != null) {
+			
 			boolean action = false;
 			//Iterate through all cookies and find the cookie for our application
 			for (int i=0;i<c.length;i++) {
@@ -354,24 +395,45 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					session_id_c = parts[0];
 					
 					String ipp1 = parts[3];
+					
+					/*if(mbrSet.size() == 0 && !(InetAddress.getLocalHost().getHostAddress() + ":" + port_udp).equals(ipp1)) { 
+						RPCClientStub(4, "", null, ipp1, "", "4");        //get 4 members from ipp1 
+					} else if(mbrSet.size() == 0 && parts.length > 4 ) {
+						RPCClientStub(4, "", null, parts[4], "", "4");
+					}*/
+					
 					String ipp2 = "";
-					if(parts.length > 4)
+					if(parts.length > 4) {
 						ipp2 = parts[4];
+						if(!(InetAddress.getLocalHost().getHostAddress() + ":" + port_udp).equals(ipp2) && mbrSet.indexOf(ipp2) == -1) {
+							mbrSet.add(ipp2);
+						}
+					}
+					
+					if(!(InetAddress.getLocalHost().getHostAddress() + ":" + port_udp).equals(ipp1) && mbrSet.indexOf(ipp1) == -1) {
+						mbrSet.add(ipp1);
+					}
 					
 					//Get session value corresponding to the above session id
 					//### If session data is not available here then go and fetch from other servers
 					SessionValue sv1 = (SessionValue) sessionTable.get(session_id_c);
-					if(sv1 == null) {
+					
+					if(sv1 == null || (sv1 != null && Integer.parseInt(sv1.version_number) < Integer.parseInt(parts[1]))) {
 						String sv1_data = RPCClientStub(1, session_id_c, null, ipp1, ipp2, parts[1] );
-						sv1 = new SessionValue();
-						
-						System.out.println("data:" + sv1_data);
-						
-						String[] parts1 = sv1_data.split("#");
-						sv1.message = parts1[2];
-						sv1.version_number = parts1[3];
-						sv1.time_stamp = Long.parseLong(parts1[4]);
-						sessionTable.put(session_id_c, sv1);
+						if (sv1_data == null) {
+							response.sendRedirect(request.getContextPath() + "/ErrorPage.jsp");
+							redirect = true;
+						} else {
+							sv1 = new SessionValue();
+							
+							System.out.println("data:" + sv1_data);
+							
+							String[] parts1 = sv1_data.split("#");
+							sv1.message = parts1[2];
+							sv1.version_number = parts1[3];
+							sv1.time_stamp = Long.parseLong(parts1[4]);
+							sessionTable.put(session_id_c, sv1);
+						}
 					}
 					
 					//Get message value from cookie
@@ -399,18 +461,19 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						//Send updated cookie to the client
 						response.addCookie(c[i]);
 						action = true;
+						
 						//Replace the message in the session table
 						sv1.message = msg1;
 					}
 					//If command is replace and new string is empty then treat this as refresh
 					if(request.getParameter("replace") != null && 
 							request.getParameter("replace").trim().equals("")) {
+						String new_msg = parts[0]+ "#" + (Integer.parseInt(parts[1]) + 1) + "#" + parts[2] + "#" + parts[3];
+						c[i].setValue(new_msg);
+						action = true;
 						//Update cookie expiration value
 						c[i].setMaxAge(minutes * 60);
-						String new_msg = parts[0] +"#"+ (Integer.parseInt(parts[1]) + 1) +"#"+ parts[2] +"#"+ parts[3];
-						c[i].setValue(new_msg);
 						//Send new cookie
-						action = true;
 						response.addCookie(c[i]);
 					}
 					//If command is logout then
@@ -420,7 +483,13 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 							response.addCookie(c[i]); //Send new cookie
 							
 							//Remove
-							RPCClientStub(3,session_id_c,sv1,ipp1,ipp2,parts[1]);
+							if((InetAddress.getLocalHost().getHostAddress() + ":" + port_udp).equals(ipp1)) {
+								RPCClientStub(3,session_id_c,sv1,"",ipp2,parts[1]);
+							}
+							else if((InetAddress.getLocalHost().getHostAddress() + ":" + port_udp).equals(ipp2)) {
+								RPCClientStub(3,session_id_c,sv1,ipp1,"",parts[1]);
+							}
+							else RPCClientStub(3,session_id_c,sv1,ipp1,ipp2,parts[1]);
 							
 							RemoveCookie(session_id_c); //Remove entry from session table
 														
@@ -428,33 +497,47 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						}
 						//If command is refresh then
 						if(request.getParameter("cmd").equals("refresh")) {
-							String new_msg = parts[0] +"#"+ (Integer.parseInt(parts[1]) + 1) +"#"+ parts[2] +"#"+ parts[3];
+							String new_msg = parts[0]+"#"+ (Integer.parseInt(parts[1]) + 1) +"#"+parts[2]+"#"+parts[3];
 							c[i].setValue(new_msg);
+							action = true;
 							c[i].setMaxAge(minutes * 60); //Update cookie expiration time
 							response.addCookie(c[i]); //Send new cookie
-							action = true;
 						}
 				}
 				
-				//Update entry in the session table	
-				sv1.time_stamp = new Date().getTime() + (minutes * 60 * 1000); 
+				if (mbrSet.size() > 0) {
+					if((InetAddress.getLocalHost().getHostAddress() + ":" + port_udp).equals(ipp1)) {
+						RPCClientStub(2,session_id_c,sv1,"",ipp2,"");
+					}
+					else if((InetAddress.getLocalHost().getHostAddress() + ":" + port_udp).equals(ipp2)) {
+						RPCClientStub(2,session_id_c,sv1,ipp1,"","");
+					}
+					else RPCClientStub(2,session_id_c,sv1,ipp1,ipp2,"");
+					
+				}
 				
-				int vno = Integer.parseInt(sv1.version_number);
-				
-				sv1.version_number = (++vno) + ""; //Increment version number
-				RPCClientStub(2, session_id_c, sv1, ipp1, ipp2,"");
-				if(!action) {
-					String new_msg1 = parts[0] +"#"+ (Integer.parseInt(parts[1]) + 1) +"#"+ parts[2] +"#"+ parts[3];
-					c[i].setValue(new_msg1);
-					c[i].setMaxAge(minutes * 60); //Update cookie expiration time
-					response.addCookie(c[i]); //Send new cookie
+				if(sv1 != null) {
+					//Update entry in the session table	
+					sv1.time_stamp = new Date().getTime() + (minutes * 60 * 1000); 
+					
+					int vno = Integer.parseInt(sv1.version_number);
+					
+					sv1.version_number = (++vno) + ""; //Increment version number
+					if(!action) {
+						
+						String new_msg = parts[0]+"#"+ (Integer.parseInt(parts[1]) + 1) +"#"+parts[2]+"#"+parts[3];
+						c[i].setValue(new_msg);
+						c[i].setMaxAge(minutes * 60);
+						response.addCookie(c[i]);
+					}
+					sessionTable.put(session_id_c, sv1);
 				}
 				}
 			}
 		}
 		if(request.getParameter("cmd") != null && request.getParameter("cmd").equals("logout")){
 			
-		} else {
+		} else if(!redirect){
 			response.sendRedirect(request.getContextPath() + "/Project.jsp"); //Redirect to the jsp file
 		}
 	}

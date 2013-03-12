@@ -18,23 +18,18 @@ public class RPCServer extends Thread {
 				DatagramPacket receivePacket = new DatagramPacket(data, data.length);
 				Project1.port_udp = server.getLocalPort();
 				
-				System.out.println("Test running...111");
-				
 				server.receive(receivePacket);
-				
-				System.out.println("Test running...");
 				
 				String[] packetList = new String(receivePacket.getData(),0,receivePacket.getLength()).split("#");
 				int opcode = Integer.parseInt(packetList[1]);
 				
 				InetAddress ipaddr = receivePacket.getAddress();
-				System.out.println(ipaddr);
-				int portNo = receivePacket.getPort();
-				System.out.println(portNo);
+				int portNo = Integer.parseInt(packetList[packetList.length - 1]); 
 				
-				if( Project1.mbrSet.indexOf(ipaddr.toString() + ":" + portNo) == -1 ) {
+				if( !(InetAddress.getLocalHost().getHostAddress() + ":" + Project1.port_udp).equals(ipaddr.toString() + ":" + portNo) && Project1.mbrSet.indexOf(ipaddr.toString() + ":" + portNo) == -1 ) {
 					Project1.mbrSet.add(ipaddr.toString() + ":" + portNo);
 				}
+				
 				String packet = "";
 				byte[] output = null;
 				SessionValue sv = new SessionValue();				
@@ -44,7 +39,11 @@ public class RPCServer extends Thread {
 				switch(opcode) {
 					case 1: 
 						sv = sessionRead(packetList[2], Integer.parseInt(packetList[3]));
-						packet = packetList[0] + "#" + packetList[2] + "#" + sv.message + "#" + sv.version_number + "#" + sv.time_stamp; 
+						if (sv != null) {
+							packet = packetList[0] + "#" + packetList[2] + "#" + sv.message + "#" + sv.version_number + "#" + sv.time_stamp;
+						} else 
+							packet = packetList[0] + "#" + packetList[2] + "#" + "NAK";
+						 
 						break;
 					
 					case 2:
@@ -76,8 +75,7 @@ public class RPCServer extends Thread {
 				}
 				
 				output = packet.getBytes();
-				DatagramPacket sendPacket = new DatagramPacket(output, output.length,
-						ipaddr,portNo);
+				DatagramPacket sendPacket = new DatagramPacket(output, output.length,ipaddr,receivePacket.getPort());
 				server.send(sendPacket);
 			}
 		} catch(Exception e) {
