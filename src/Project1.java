@@ -50,7 +50,6 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 	public static ArrayList<String> mbrSet = new ArrayList<String>();
 	
 	public static int port_udp;
-	RPCServer rpc;
 	/**
      * Default constructor. 
      */
@@ -61,8 +60,6 @@ public class Project1 extends HttpServlet implements ServletContextListener {
     public void init(ServletConfig config) {
     	try {
     		super.init(config);
-    		rpc = new RPCServer();
-    		rpc.start();
     		Thread.sleep(100);
     	} catch (Exception e) {
     		e.printStackTrace();
@@ -143,7 +140,10 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					    
 					    DatagramPacket receivePacket = new DatagramPacket(inBuf_r, inBuf_r.length);
 					    clientSocket.receive(receivePacket);
-					    return new String(inBuf_r,0,receivePacket.getLength());
+					    int callID = Integer.parseInt(receivePacket.toString().split("#")[0]);
+					    if(callID == call_id_r) {
+					    	return new String(inBuf_r,0,receivePacket.getLength());
+					    }
 					} catch(Exception e) {
 						mbrSet.remove(ipp1);
 					}
@@ -163,7 +163,10 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						    
 						    DatagramPacket receivePacket = new DatagramPacket(inBuf_r1, inBuf_r1.length);
 						    clientSocket.receive(receivePacket);
-						    return new String(inBuf_r1);
+						    int callID = Integer.parseInt(receivePacket.toString().split("#")[0]);
+						    if(callID == call_id_r) {
+						    	return new String(inBuf_r1);
+						    }
 						} catch(Exception e) {
 							mbrSet.remove(ipp2);
 							return null;
@@ -191,8 +194,11 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						    
 						    DatagramPacket receivePacket = new DatagramPacket(inBuf_u, inBuf_u.length);
 						    clientSocket.receive(receivePacket);
-						    String[] packetList = new String(receivePacket.getData(),0,receivePacket.getLength()).split("#");
-						    ack = packetList[1];
+						    int callID = Integer.parseInt(receivePacket.toString().split("#")[0]);
+						    if(callID == call_id_u) {
+						    	String[] packetList = new String(receivePacket.getData(),0,receivePacket.getLength()).split("#");
+						    	ack = packetList[1];
+						    }
 						} catch(Exception e) {
 							mbrSet.remove(ipp1);
 							ack = "NAK";
@@ -211,8 +217,11 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						    
 						    DatagramPacket receivePacket = new DatagramPacket(inBuf_u, inBuf_u.length);
 						    clientSocket.receive(receivePacket);
-						    String[] packetList = new String(receivePacket.getData(),0,receivePacket.getLength()).split("#");
-						    ack = packetList[1];
+						    int callID = Integer.parseInt(receivePacket.toString().split("#")[0]);
+						    if(callID == call_id_u) {
+						    	String[] packetList = new String(receivePacket.getData(),0,receivePacket.getLength()).split("#");
+						    	ack = packetList[1];
+						    }
 						} catch(Exception e) {
 							mbrSet.remove(ipp2);
 							ack = "NAK";
@@ -236,10 +245,15 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 							    
 							    DatagramPacket receivePacket = new DatagramPacket(inBuf_u, inBuf_u.length);
 							    clientSocket.receive(receivePacket);
+							    int callID = Integer.parseInt(receivePacket.toString().split("#")[0]);
+							    if(callID == call_id_u) {
+							    	String[] packetList = new String(receivePacket.getData(),0,receivePacket.getLength()).split("#");
+							    	ack = packetList[1];
+							    }
 							} catch (Exception e) {
 								mbrSet.remove(ipp);
 							}
-						}while(mbrSet.size() > 0);
+						}while(mbrSet.size() > 0 && ack.equals("NAK"));
 						
 					}
 				break;
@@ -305,8 +319,12 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					    DatagramPacket receivePacket = new DatagramPacket(inBuf5, inBuf5.length);
 					    clientSocket.receive(receivePacket);	
 					    String[] packetList = new String(receivePacket.getData(),0,receivePacket.getLength()).split("#");
-					    for(String s : packetList) {
-					    	mbrSet.add(s);
+					    if(Integer.parseInt(packetList[0]) == call_id5) {
+					    	for(int i = 1; i<packetList.length; i++) {
+					    		if( !packetList[i].equals(InetAddress.getLocalHost().getHostAddress() + ":" + port_udp)) {
+					    			mbrSet.add(packetList[i]);
+					    		}
+					    	}
 					    }
 					} catch(Exception e) {
 						//mbrSet.remove(ipp1);
@@ -396,11 +414,11 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					
 					String ipp1 = parts[3];
 					
-					/*if(mbrSet.size() == 0 && !(InetAddress.getLocalHost().getHostAddress() + ":" + port_udp).equals(ipp1)) { 
+					if(mbrSet.size() == 0 && !(InetAddress.getLocalHost().getHostAddress() + ":" + port_udp).equals(ipp1)) { 
 						RPCClientStub(4, "", null, ipp1, "", "4");        //get 4 members from ipp1 
 					} else if(mbrSet.size() == 0 && parts.length > 4 ) {
 						RPCClientStub(4, "", null, parts[4], "", "4");
-					}*/
+					}
 					
 					String ipp2 = "";
 					if(parts.length > 4) {

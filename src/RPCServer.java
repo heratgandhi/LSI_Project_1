@@ -24,10 +24,9 @@ public class RPCServer extends Thread {
 				int opcode = Integer.parseInt(packetList[1]);
 				
 				InetAddress ipaddr = receivePacket.getAddress();
-				int portNo = Integer.parseInt(packetList[packetList.length - 1]); 
 				
-				if( !(InetAddress.getLocalHost().getHostAddress() + ":" + Project1.port_udp).equals(ipaddr.toString() + ":" + portNo) && Project1.mbrSet.indexOf(ipaddr.toString() + ":" + portNo) == -1 ) {
-					Project1.mbrSet.add(ipaddr.toString() + ":" + portNo);
+				if( !(InetAddress.getLocalHost().getHostAddress() + ":" + Project1.port_udp).equals(ipaddr.toString() + ":" + packetList[packetList.length - 1]) && Project1.mbrSet.indexOf(ipaddr.toString() + ":" + packetList[packetList.length - 1]) == -1 ) {
+					Project1.mbrSet.add(ipaddr.toString() + ":" + packetList[packetList.length - 1]);
 				}
 				
 				String packet = "";
