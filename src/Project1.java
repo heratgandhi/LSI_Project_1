@@ -8,6 +8,7 @@
  *  Note: As hashtable is thread safe we have not explicitely
  *  used synchronized in our code.
  */
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -23,6 +24,10 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.services.ec2.model.StopInstancesRequest;
 
 /**
  * SessionValue class is used to store session related values in
@@ -50,6 +55,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 	public static ArrayList<String> mbrSet = new ArrayList<String>();
 	
 	public static int port_udp;
+	public static int session_loc;
 	/**
      * Default constructor. 
      */
@@ -142,6 +148,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					    clientSocket.receive(receivePacket);
 					    int callID = Integer.parseInt(receivePacket.toString().split("#")[0]);
 					    if(callID == call_id_r) {
+					    	session_loc = 1;
 					    	return new String(inBuf_r,0,receivePacket.getLength());
 					    }
 					} catch(Exception e) {
@@ -165,6 +172,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						    clientSocket.receive(receivePacket);
 						    int callID = Integer.parseInt(receivePacket.toString().split("#")[0]);
 						    if(callID == call_id_r) {
+						    	session_loc = 2;
 						    	return new String(inBuf_r1);
 						    }
 						} catch(Exception e) {
@@ -350,6 +358,16 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 		boolean redirect = false;
 		
 		if(request.getParameter("cmd") != null && request.getParameter("cmd") == "error") {
+			BasicAWSCredentials awsCredentials = new BasicAWSCredentials("AKIAJLKX3LAUH7TDPJKA", "S/cBM3YtkyftJfk1jwzZt+WKgyvNWPC4FWWEq7T8");
+
+			AmazonEC2Client ec2Client = new AmazonEC2Client(awsCredentials);
+			ec2Client.setEndpoint("");/*ec2.us-west-1.amazonaws.com*/
+
+			List<String> instancesToStop = new ArrayList<String>();
+	        instancesToStop.add(request.getParameter("instance"));
+	        StopInstancesRequest stoptr = new StopInstancesRequest();                
+	        stoptr.setInstanceIds(instancesToStop);
+	        ec2Client.stopInstances(stoptr);
 			return;
 		}
 		
@@ -453,6 +471,8 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 							sv1.time_stamp = Long.parseLong(parts1[4]);
 							//sessionTable.put(session_id_c, sv1);
 						}
+					} else {
+						session_loc = 0;
 					}
 					
 					//Get message value from cookie

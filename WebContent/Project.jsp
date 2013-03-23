@@ -4,7 +4,7 @@
  -->
 <%@page import="java.net.InetAddress"%>
 <%@ page language="java" contentType="text/html; charset=ISO-8859-1"
-    pageEncoding="ISO-8859-1" import="java.util.*,java.sql.Timestamp" session="false" %>
+    pageEncoding="ISO-8859-1" import="java.util.*,java.sql.Timestamp,java.net.*,java.io.*;" session="false" %>
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
@@ -30,10 +30,11 @@
 		InetAddress inetAdd= InetAddress.getLocalHost(); //Get server IP
 		String serverIP = inetAdd.getHostAddress(); //Get server port
 		
+		String[] parts = null;
 		if(c != null) {
 			for (int i=0;i<c.length;i++) {
 				if(c[i].getName().equals("CS5300PROJ1SESSIONSVH")) {
-					String[] parts = c[i].getValue().split("#");
+					parts = c[i].getValue().split("#");
 					msg = parts[2];
 					maxage = c[i].getMaxAge();
 				}
@@ -47,16 +48,58 @@
 			out.println("</form></tr>");
 			out.println("<tr><td><a href='"+ request.getContextPath() +"/Project1?cmd=refresh'><button>Refresh</button></a></td></tr>");
 			out.println("<tr><td><a href='"+ request.getContextPath() +"/Project1?cmd=logout'><button>Logout</button></a></td></tr>");
-			out.println("<tr><td><a href='"+ request.getContextPath() +"/Project1?cmd=error'><button>Stop Server</button></a></td></tr>");
+			out.println("<tr><td><a href='"+ request.getContextPath() +"/Project1?cmd=error&instance='"+ retrieveInstanceId() +"><button>Stop Server</button></a></td></tr>");
 			out.println("</table>");
 
 			out.println("Session expires on: "+ new Timestamp( new Date().getTime() + (5 * 60 * 1000) ));
 			out.println("<br/>Server IP:" + serverIP);
 			out.println("<br/>Port:"+request.getLocalPort());
+			out.println("<br/>Server ID: "+retrieveInstanceId());
+			out.println("<br/>mbrSet: "+printList());
+			if(c != null) {
+				for (int i=0;i<c.length;i++) {
+					if(c[i].getName().equals("CS5300PROJ1SESSIONSVH")) {
+						out.println("<br/>IPP primary: " + parts[3]);
+						if(parts.length > 4) {
+							out.println("<br/>IPP backup: " + parts[4]);
+						}
+					}
+				}
+			}
 		} else {
 			response.sendRedirect(request.getContextPath() +"/Project1");
 		}
 	}
+	%>
+	<%!
+		public static String printList() {
+			String res = "";
+			if(Project1.mbrSet != null) {
+				for(String line : Project1.mbrSet) {
+					res += line+"<br/>";
+				}
+			}
+			return res;
+		}
+		public static String retrieveInstanceId() {
+			String EC2Id = "";	
+			try {
+				String inputLine;
+				URL EC2MetaData = new URL("http://169.254.169.254/latest/meta-data/instance-id");
+				URLConnection EC2MD = EC2MetaData.openConnection();
+				BufferedReader in = new BufferedReader(
+				new InputStreamReader(
+				EC2MD.getInputStream()));
+				while ((inputLine = in.readLine()) != null) {	
+					EC2Id = inputLine;
+				}
+				in.close();
+				
+			} catch(Exception e) {
+				
+			}
+			return EC2Id;
+		}
 	%>
 </body>
 </html>
