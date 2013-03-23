@@ -576,6 +576,8 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 		if(request.getParameter("cmd") != null && request.getParameter("cmd").equals("logout")){
 			
 		} else if(!redirect){
+			javaserver.ParameterPass.mbrSet = mbrSet;
+			javaserver.ParameterPass.session_loc = session_loc;
 			response.sendRedirect(request.getContextPath() + "/Project.jsp"); //Redirect to the jsp file
 		}
 	}

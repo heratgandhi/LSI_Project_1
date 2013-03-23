@@ -4,7 +4,7 @@
  -->
 <%@page import="java.net.InetAddress"%>
 <%@ page language="java" contentType="text/html; charset=ISO-8859-1"
-    pageEncoding="ISO-8859-1" import="java.util.*,java.sql.Timestamp,java.net.*,java.io.*;" session="false" %>
+    pageEncoding="ISO-8859-1" import="java.util.*,java.sql.Timestamp,java.net.*,java.io.*,javaserver.*;" session="false" %>
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
@@ -56,6 +56,7 @@
 			out.println("<br/>Port:"+request.getLocalPort());
 			out.println("<br/>Server ID: "+retrieveInstanceId());
 			out.println("<br/>mbrSet: "+printList());
+			out.println("<br/>Session found at: "+ParameterPass.session_loc);
 			if(c != null) {
 				for (int i=0;i<c.length;i++) {
 					if(c[i].getName().equals("CS5300PROJ1SESSIONSVH")) {
@@ -75,7 +76,7 @@
 		public static String printList() {
 			String res = "";
 			if(Project1.mbrSet != null) {
-				for(String line : Project1.mbrSet) {
+				for(String line : ParameterPass.mbrSet) {
 					res += line+"<br/>";
 				}
 			}
