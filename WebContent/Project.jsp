@@ -75,7 +75,7 @@
 	<%!
 		public static String printList() {
 			String res = "";
-			if(Project1.mbrSet != null) {
+			if(ParameterPass.mbrSet != null) {
 				for(String line : ParameterPass.mbrSet) {
 					res += line+"<br/>";
 				}

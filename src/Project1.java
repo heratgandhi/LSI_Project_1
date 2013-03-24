@@ -25,9 +25,9 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.ec2.AmazonEC2Client;
-import com.amazonaws.services.ec2.model.StopInstancesRequest;
+//import com.amazonaws.auth.BasicAWSCredentials;
+//import com.amazonaws.services.ec2.AmazonEC2Client;
+//import com.amazonaws.services.ec2.model.StopInstancesRequest;
 
 /**
  * SessionValue class is used to store session related values in
@@ -358,17 +358,17 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 		boolean redirect = false;
 		
 		if(request.getParameter("cmd") != null && request.getParameter("cmd") == "error") {
-			BasicAWSCredentials awsCredentials = new BasicAWSCredentials("AKIAJLKX3LAUH7TDPJKA", "S/cBM3YtkyftJfk1jwzZt+WKgyvNWPC4FWWEq7T8");
+			/*BasicAWSCredentials awsCredentials = new BasicAWSCredentials("AKIAJLKX3LAUH7TDPJKA", "S/cBM3YtkyftJfk1jwzZt+WKgyvNWPC4FWWEq7T8");
 
 			AmazonEC2Client ec2Client = new AmazonEC2Client(awsCredentials);
-			ec2Client.setEndpoint("");/*ec2.us-west-1.amazonaws.com*/
+			ec2Client.setEndpoint("");/*ec2.us-west-1.amazonaws.com
 
 			List<String> instancesToStop = new ArrayList<String>();
 	        instancesToStop.add(request.getParameter("instance"));
 	        StopInstancesRequest stoptr = new StopInstancesRequest();                
 	        stoptr.setInstanceIds(instancesToStop);
 	        ec2Client.stopInstances(stoptr);
-			return;
+			return;*/
 		}
 		
 		/*
