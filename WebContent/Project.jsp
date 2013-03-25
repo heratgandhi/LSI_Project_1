@@ -4,7 +4,7 @@
  -->
 <%@page import="java.net.InetAddress"%>
 <%@ page language="java" contentType="text/html; charset=ISO-8859-1"
-    pageEncoding="ISO-8859-1" import="java.util.*,java.sql.Timestamp,java.net.*,java.io.*,javaserver.*;" session="false" %>
+    pageEncoding="ISO-8859-1" import="java.util.*,java.sql.Timestamp,java.net.*,java.io.*;" session="false" %>
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
@@ -55,8 +55,32 @@
 			out.println("<br/>Server IP:" + serverIP);
 			out.println("<br/>Port:"+request.getLocalPort());
 			out.println("<br/>Server ID: "+retrieveInstanceId());
-			out.println("<br/>mbrSet: "+printList());
-			out.println("<br/>Session found at: "+ParameterPass.session_loc);
+			
+			ArrayList<String> mbrSet = (ArrayList<String>)request.getAttribute("mbrSet");
+			String res = "";
+			if(mbrSet != null) {
+				for(String line : mbrSet) {
+					res += line+"<br/>";
+				}
+			}
+			
+			out.println("<br/>mbrSet: "+res);
+			String session_locc="";
+			switch(Integer.parseInt((String)request.getAttribute("location"))) {
+				case 0:
+					session_locc = "New Session";
+				break;
+				case 1:
+					session_locc = "IPP Primary";
+				break;	
+				case 2:
+					session_locc = "IPP Backup";
+				break;
+				case 3:
+					session_locc = "Session Table";
+				break;
+			}
+			out.println("<br/>Session found at: "+session_locc);
 			if(c != null) {
 				for (int i=0;i<c.length;i++) {
 					if(c[i].getName().equals("CS5300PROJ1SESSIONSVH")) {
@@ -73,15 +97,6 @@
 	}
 	%>
 	<%!
-		public static String printList() {
-			String res = "";
-			if(ParameterPass.mbrSet != null) {
-				for(String line : ParameterPass.mbrSet) {
-					res += line+"<br/>";
-				}
-			}
-			return res;
-		}
 		public static String retrieveInstanceId() {
 			String EC2Id = "";	
 			try {
