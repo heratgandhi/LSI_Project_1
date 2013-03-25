@@ -339,7 +339,9 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					    String[] packetList = new String(receivePacket.getData(),0,receivePacket.getLength()).split("#");
 					    if(Integer.parseInt(packetList[0]) == call_id5) {
 					    	for(int i = 1; i<packetList.length; i++) {
-					    		if( !packetList[i].replace("/", "").equals(InetAddress.getLocalHost().getHostAddress().replace("/", "") + ":" + port_udp)) {
+					    		if( !packetList[i].replace("/", "").equals(InetAddress.getLocalHost().getHostAddress().replace("/", "") + ":" + port_udp)
+					    			&&	
+					    			mbrSet.indexOf(packetList[i].replace("/", "")) == -1	) {
 					    			mbrSet.add(packetList[i].replace("/", ""));
 					    		}
 					    	}
