@@ -434,7 +434,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 		 * If client's request has some cookie with it then process the cookie based on various events like
 		 * refresh, replace and logout.
 		 */		
-		else {
+		else if(c != null) {
 			
 			boolean action = false;
 			//Iterate through all cookies and find the cookie for our application
@@ -596,15 +596,16 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 		if(request.getParameter("cmd") != null && request.getParameter("cmd").equals("logout")){
 			
 		} else if(!redirect){
-			if(session_loc == 0) {
-				response.sendRedirect(request.getContextPath() +"/ServletP");
-			} 
-			else {
-				request.setAttribute("mbrSet", mbrSet);
-				request.setAttribute("location", session_loc+"");
-				System.out.println("Dispatched");
-				request.getRequestDispatcher("/Project.jsp").forward(request, response);
+			request.setAttribute("mbrSet", mbrSet);
+			if(request.getParameter("first") != null && 
+					request.getParameter("first").equals("true")){
+				session_loc = 0;
 			}
+			request.setAttribute("location", session_loc+"");
+	
+			request.getRequestDispatcher("/Project.jsp").forward(request, response);
+			
+			//response.sendRedirect(request.getContextPath() + "/Project.jsp"); //Redirect to the jsp file
 		}
 	}
 

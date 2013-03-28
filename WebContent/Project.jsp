@@ -83,7 +83,7 @@
 					session_locc = "Session Table";
 				break;
 			}
-			out.println("<br/>Session found at: "+session_locc + "  " + (String)request.getAttribute("location"));
+			out.println("<br/>Session found at: "+session_locc);
 			if(c != null) {
 				for (int i=0;i<c.length;i++) {
 					if(c[i].getName().equals("CS5300PROJ1SESSIONSVH")) {
@@ -95,7 +95,7 @@
 				}
 			}
 		} else {
-			response.sendRedirect(request.getContextPath() +"/Project1");
+			response.sendRedirect("/Project_1?first=true");
 		}
 	}
 	%>
