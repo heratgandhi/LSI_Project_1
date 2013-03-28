@@ -37,6 +37,30 @@ class SessionValue {
 	String message; //Message
 }
 
+class CleanUpProcess extends TimerTask {
+    public void run() {
+    	/**
+         * RemoveExpiredCookie method
+         * This method iterates through the session table when it finds
+         * the stale session entry, it removes that session entry 
+         * from the session table.
+         */
+        for (Iterator<Map.Entry<String, SessionValue>> itr = Project1.sessionTable.entrySet().iterator(); itr.hasNext(); ) {
+		    synchronized (itr) {
+		    	Map.Entry<String, SessionValue> entry = itr.next();
+			    /*
+			     * Check whether current timestamp is greater than session's
+			     * expiration time, if yes then remove that entry from session
+			     * table.
+			     */
+			    if (entry.getValue().time_stamp + 1000 < new Date().getTime()) {
+			    	itr.remove();		        
+			    }
+			}        	
+    	}
+    }
+  }
+
 /**
  * Servlet implementation class Project1
  * This class handles all the user interaction using doGet method.
@@ -55,11 +79,16 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 	
 	public static int port_udp;
 	public static int session_loc;
+	
+	Timer timer;
+	
 	/**
      * Default constructor. 
      */
     public Project1() {
         // TODO Auto-generated constructor stub
+    	timer = new Timer();
+    	timer.scheduleAtFixedRate(new CleanUpProcess(), 0, 5 * 60 * 1000);
     }
     
     public void init(ServletConfig config) {
@@ -99,26 +128,6 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 		    }
 		}
 	}
-    
-    /**
-     * RemoveExpiredCookie method
-     * This method iterates through the session table when it finds
-     * the stale session entry, it removes that session entry 
-     * from the session table.
-     */
-    void RemoveExpiredCookie() {
-    	for (Iterator<Map.Entry<String, SessionValue>> itr = sessionTable.entrySet().iterator(); itr.hasNext(); ) {
-		    Map.Entry<String, SessionValue> entry = itr.next();
-		    /*
-		     * Check whether current timestamp is greater than session's
-		     * expiration time, if yes then remove that entry from session
-		     * table.
-		     */
-		    if (entry.getValue().time_stamp + 4000 < new Date().getTime()) {
-		        itr.remove();
-		    }
-		}
-    }
     
     String RPCClientStub(int opcode, String sessionid, SessionValue sv, String ipp1, String ipp2, String version) {
 		try {		    
@@ -425,8 +434,6 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 			//Send cookie to the client
 			response.addCookie(ck);
 						
-			//Remove any expired session entry from the session table
-			RemoveExpiredCookie();
 			session_loc = 0;
 			System.out.println("Default");
 		}
