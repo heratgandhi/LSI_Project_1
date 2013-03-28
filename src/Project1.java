@@ -487,6 +487,9 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						String sv1_data = RPCClientStub(1, session_id_c, null, ipp1, ipp2, parts[1] );
 						
 						if (sv1_data == null) {
+							Cookie ck = new Cookie("CS5300PROJ1SESSIONSVH","error");
+							ck.setMaxAge(0);
+							response.addCookie(ck);
 							response.sendRedirect(request.getContextPath() + "/ErrorPage.jsp");
 							redirect = true;
 						} else {
