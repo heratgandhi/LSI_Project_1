@@ -46,16 +46,15 @@ class CleanUpProcess extends TimerTask {
          * from the session table.
          */
         for (Iterator<Map.Entry<String, SessionValue>> itr = Project1.sessionTable.entrySet().iterator(); itr.hasNext(); ) {
-		    synchronized (itr) {
-		    	Map.Entry<String, SessionValue> entry = itr.next();
-			    /*
-			     * Check whether current timestamp is greater than session's
-			     * expiration time, if yes then remove that entry from session
-			     * table.
-			     */
-			    if (entry.getValue().time_stamp + 1000 < new Date().getTime()) {
-			    	itr.remove();		        
-			    }
+		    Map.Entry<String, SessionValue> entry = itr.next();
+		    /*
+		     * Check whether current timestamp is greater than session's
+		     * expiration time, if yes then remove that entry from session
+		     * table.
+		     */
+		    if (entry.getValue().time_stamp + 1000 < new Date().getTime()) {
+		    	itr.remove();		        
+			    
 			}        	
     	}
     }
@@ -487,9 +486,8 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						String sv1_data = RPCClientStub(1, session_id_c, null, ipp1, ipp2, parts[1] );
 						
 						if (sv1_data == null) {
-							Cookie ck = new Cookie("CS5300PROJ1SESSIONSVH","error");
-							ck.setMaxAge(0);
-							response.addCookie(ck);
+							c[i].setMaxAge(0);
+							response.addCookie(c[i]);
 							response.sendRedirect(request.getContextPath() + "/ErrorPage.jsp");
 							redirect = true;
 						} else {
