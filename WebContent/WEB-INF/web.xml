@@ -23,4 +23,14 @@
   <listener>
     <listener-class>Project1</listener-class>
   </listener>
-  </web-app>
+  <servlet>
+    <description></description>
+    <display-name>ServletP</display-name>
+    <servlet-name>ServletP</servlet-name>
+    <servlet-class>ServletP</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ServletP</servlet-name>
+    <url-pattern>/ServletP</url-pattern>
+  </servlet-mapping>
+</web-app>

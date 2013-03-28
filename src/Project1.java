@@ -363,12 +363,15 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
 		response.setContentType("text/html");	
+		
 		Cookie c[] = request.getCookies(); //Get cookies from the request
 		String msg = "";
 		String msg1;
 		String session_id_c;
 		String ippLocal = InetAddress.getLocalHost().getHostAddress().replace("/", "") + ":" + port_udp;
 		boolean redirect = false;
+		
+		System.out.println("Request Arrived!");
 		
 		if(request.getParameter("cmd") != null && request.getParameter("cmd") == "error") {
 			/*BasicAWSCredentials awsCredentials = new BasicAWSCredentials("AKIAJLKX3LAUH7TDPJKA", "S/cBM3YtkyftJfk1jwzZt+WKgyvNWPC4FWWEq7T8");
@@ -402,7 +405,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 			SessionValue sv = new SessionValue();
 			sv.message = msg;
 			sv.version_number = version_no;
-			sv.time_stamp = new Date().getTime() + (minutes * 60 * 1000 + 2*delta + tau);
+			sv.time_stamp = new Date().getTime() + ((minutes * 60+ 2*delta + tau) * 1000 );
 			
 			sessionTable.put(session_id, sv);
 			
@@ -424,13 +427,14 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						
 			//Remove any expired session entry from the session table
 			RemoveExpiredCookie();
-			
+			session_loc = 0;
+			System.out.println("Default");
 		}
 		/*
 		 * If client's request has some cookie with it then process the cookie based on various events like
 		 * refresh, replace and logout.
 		 */		
-		else if(c != null) {
+		else {
 			
 			boolean action = false;
 			//Iterate through all cookies and find the cookie for our application
@@ -489,8 +493,9 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 							sv1.time_stamp = Long.parseLong(parts1[4]);
 							//sessionTable.put(session_id_c, sv1);
 						}
-					} else if(sv1 != null) {
+					} else if(sv1 != null && Integer.parseInt(sv1.version_number) >= Integer.parseInt(parts[1])) {
 						session_loc = 3;
+						System.out.println("From Table");
 					}
 					
 					//Get message value from cookie
@@ -555,7 +560,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					
 					if(sv1 != null) {
 						//Update entry in the session table	
-						sv1.time_stamp = new Date().getTime() + (minutes * 60 * 1000 + 2*delta + tau); 
+						sv1.time_stamp = new Date().getTime() + ((minutes * 60 + 2*delta + tau) * 1000 ); 
 						sv1.message = new_msg;
 						int vno = Integer.parseInt(sv1.version_number);
 						sv1.version_number = (++vno) + ""; //Increment version number
@@ -591,12 +596,15 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 		if(request.getParameter("cmd") != null && request.getParameter("cmd").equals("logout")){
 			
 		} else if(!redirect){
-			request.setAttribute("mbrSet", mbrSet);
-			request.setAttribute("location", session_loc+"");
-			
-			request.getRequestDispatcher("/Project.jsp").forward(request, response);
-			
-			//response.sendRedirect(request.getContextPath() + "/Project.jsp"); //Redirect to the jsp file
+			if(session_loc == 0) {
+				response.sendRedirect(request.getContextPath() +"/ServletP");
+			} 
+			else {
+				request.setAttribute("mbrSet", mbrSet);
+				request.setAttribute("location", session_loc+"");
+				System.out.println("Dispatched");
+				request.getRequestDispatcher("/Project.jsp").forward(request, response);
+			}
 		}
 	}
 

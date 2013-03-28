@@ -30,6 +30,9 @@
 		InetAddress inetAdd= InetAddress.getLocalHost(); //Get server IP
 		String serverIP = inetAdd.getHostAddress(); //Get server port
 		
+		int minutes = 5;
+		int delta = 5;
+		
 		String[] parts = null;
 		if(c != null) {
 			for (int i=0;i<c.length;i++) {
@@ -51,7 +54,7 @@
 			out.println("<tr><td><a href='"+ request.getContextPath() +"/Project1?cmd=error&instance='"+ retrieveInstanceId() +"><button>Stop Server</button></a></td></tr>");
 			out.println("</table>");
 
-			out.println("Session expires on: "+ new Timestamp( new Date().getTime() + (5 * 60 * 1000) ));
+			out.println("Session expires on: "+ new Timestamp( new Date().getTime() + ((minutes * 60 + delta) * 1000)));
 			out.println("<br/>Server IP:" + serverIP);
 			out.println("<br/>Port:"+request.getLocalPort());
 			out.println("<br/>Server ID: "+retrieveInstanceId());
@@ -80,7 +83,7 @@
 					session_locc = "Session Table";
 				break;
 			}
-			out.println("<br/>Session found at: "+session_locc);
+			out.println("<br/>Session found at: "+session_locc + "  " + (String)request.getAttribute("location"));
 			if(c != null) {
 				for (int i=0;i<c.length;i++) {
 					if(c[i].getName().equals("CS5300PROJ1SESSIONSVH")) {
