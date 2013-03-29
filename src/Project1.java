@@ -22,9 +22,9 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-//import com.amazonaws.auth.BasicAWSCredentials;
-//import com.amazonaws.services.ec2.AmazonEC2Client;
-//import com.amazonaws.services.ec2.model.StopInstancesRequest;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.services.ec2.model.StopInstancesRequest;
 
 /**
  * SessionValue class is used to store session related values in
@@ -384,17 +384,17 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 		System.out.println("Request Arrived!");
 		
 		if(request.getParameter("cmd") != null && request.getParameter("cmd") == "error") {
-			/*BasicAWSCredentials awsCredentials = new BasicAWSCredentials("AKIAJLKX3LAUH7TDPJKA", "S/cBM3YtkyftJfk1jwzZt+WKgyvNWPC4FWWEq7T8");
+			BasicAWSCredentials awsCredentials = new BasicAWSCredentials("AKIAJ22NLENRGJQT4Z2Q", "Y9VFisUjD9NKGntXhjZsGvUQo8cuS4BXgg20FdWL");
 
 			AmazonEC2Client ec2Client = new AmazonEC2Client(awsCredentials);
-			ec2Client.setEndpoint("");/*ec2.us-west-1.amazonaws.com
+			ec2Client.setEndpoint("");/*ec2.us-west-1.amazonaws.com*/
 
 			List<String> instancesToStop = new ArrayList<String>();
 	        instancesToStop.add(request.getParameter("instance"));
 	        StopInstancesRequest stoptr = new StopInstancesRequest();                
 	        stoptr.setInstanceIds(instancesToStop);
 	        ec2Client.stopInstances(stoptr);
-			return;*/
+			return;
 		}
 		
 		/*
@@ -405,7 +405,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 		 * the new session. 
 		 */
 		if(c == null) {
-			String session_id = UUID.randomUUID().toString().replaceAll("-", "").substring(0,5); //Generate unique session id using UUID class
+			String session_id = UUID.randomUUID().toString().replaceAll("-", ""); //Generate unique session id using UUID class
 			String version_no = "1"; //Set initial version number to 1
 			String backup_n = "";
 			

@@ -32,6 +32,7 @@
 		
 		int minutes = 5;
 		int delta = 5;
+		int tau = 5;
 		
 		String[] parts = null;
 		if(c != null) {
@@ -54,7 +55,8 @@
 			out.println("<tr><td><a href='"+ request.getContextPath() +"/Project1?cmd=error&instance='"+ retrieveInstanceId() +"><button>Stop Server</button></a></td></tr>");
 			out.println("</table>");
 
-			out.println("Session expires on: "+ new Timestamp( new Date().getTime() + ((minutes * 60 + delta) * 1000)));
+			out.println("Cookie expires on: "+ new Timestamp( new Date().getTime() + ((minutes * 60 + delta) * 1000)));
+			out.println("<br/>Discard time: "+ new Timestamp( new Date().getTime() + ((minutes * 60 + 2 * delta + tau) * 1000)));
 			out.println("<br/>Server IP:" + serverIP);
 			out.println("<br/>Port:"+request.getLocalPort());
 			out.println("<br/>Server ID: "+retrieveInstanceId());
