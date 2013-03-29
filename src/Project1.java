@@ -46,16 +46,18 @@ class CleanUpProcess extends TimerTask {
          * from the session table.
          */
         for (Iterator<Map.Entry<String, SessionValue>> itr = Project1.sessionTable.entrySet().iterator(); itr.hasNext(); ) {
-		    Map.Entry<String, SessionValue> entry = itr.next();
-		    /*
-		     * Check whether current timestamp is greater than session's
-		     * expiration time, if yes then remove that entry from session
-		     * table.
-		     */
-		    if (entry.getValue().time_stamp + 1000 < new Date().getTime()) {
-		    	itr.remove();		        
-			    
-			}        	
+        	synchronized (itr) {
+        		Map.Entry<String, SessionValue> entry = itr.next();
+    		    /*
+    		     * Check whether current timestamp is greater than session's
+    		     * expiration time, if yes then remove that entry from session
+    		     * table.
+    		     */
+    		    if (entry.getValue().time_stamp + 1000 < new Date().getTime()) {
+    		    	itr.remove();		        
+    			    
+    			}
+			}		            	
     	}
     }
   }
