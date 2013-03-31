@@ -74,10 +74,14 @@ class CleanUpProcess extends TimerTask {
  */
 public class Project1 extends HttpServlet implements ServletContextListener {
 	private static final long serialVersionUID = 1L;
-	public static final int minutes = 5; //minutes after which delete cookie
-	public static final int wait_time_seconds = 2; //Time for which we should wait for acknowledgement
-	private static final int delta = 5; //Value of delta
-	private static final int tau = 5; //Value of tau
+	public static final int minutes = 5;
+	public static final int wait_time_seconds = 100;
+	private static final int delta = 5;
+	private static final int tau = 5;
+	
+	//set resilience
+	private static int k = 1;
+	private int resilience = k;
 	
 	//Concurrent Hashmap sessionTable is used to store session data
 	public static ConcurrentHashMap<String,SessionValue> sessionTable = new ConcurrentHashMap<String,SessionValue>(100);
@@ -167,61 +171,37 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					//Create packet
 					String packetS_r = call_id_r + "#" + opcode + "#" + sessionid + "#" + version.trim() + "#" + port_udp;
 					outBuf_r = packetS_r.getBytes();
-					//Get InetAddress object for IPP Primary
-					InetAddress ipA_r1 = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
-					//Get port number from cookie
-					int portA_r1 = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
-					try {
-						DatagramSocket clientSocket = new DatagramSocket();
-						DatagramPacket sendPacket = new DatagramPacket(outBuf_r, outBuf_r.length, ipA_r1, portA_r1);
-						//Send Session Read request to IPP Primary
-					    clientSocket.send(sendPacket);
-					    //Wait for IPP Primary's reply
-					    clientSocket.setSoTimeout(wait_time_seconds * 1000);
-					    //Get reply
-					    DatagramPacket receivePacket = new DatagramPacket(inBuf_r, inBuf_r.length);
-					    clientSocket.receive(receivePacket);
-					    String[] packetList = new String(receivePacket.getData(),0,receivePacket.getLength()).split("#");
-					    int callID = Integer.parseInt(packetList[0]);
-					    //Comapare call ids of incoming and outgoing packets
-					    if(callID == call_id_r) {
-					    	session_loc = 1;
-					    	//Show session found from IPP Primary
-					    	return new String(inBuf_r,0,receivePacket.getLength());
-					    }
-					} catch(Exception e) {
-						mbrSet.remove(ipp1);
-					}
-					//If IPP Primary failes to reply then try to read session from IPP Backup
-					InetAddress ipA_r2 = null;
-					int portA_r2 = 0;
-					if(ipp2 != "") {
-						//Get InetAddress and port
-						ipA_r2 = InetAddress.getByName(ipp2.substring(0,ipp2.indexOf(':')));
-						portA_r2 = Integer.parseInt(ipp2.substring(ipp2.indexOf(':')+1));
+					
+					InetAddress ipRead = null;
+					int portRead;
+					
+					for(int i = 0; i < ipp.size(); i++)
+					{
+						ipRead = InetAddress.getByName(ipp.get(i).substring(0,ipp.get(i).indexOf(':')));
+						portRead = Integer.parseInt(ipp.get(i).substring(ipp.get(i).indexOf(':')+1));
+						
 						try {
 							DatagramSocket clientSocket = new DatagramSocket();
-							DatagramPacket sendPacket = new DatagramPacket(outBuf_r, outBuf_r.length, ipA_r2, portA_r2);
-						    //Send session read request
-							clientSocket.send(sendPacket);
-						    //Wait for some time for response
+							DatagramPacket sendPacket = new DatagramPacket(outBuf_r, outBuf_r.length, ipRead, portRead);
+						    clientSocket.send(sendPacket);
+						    
 						    clientSocket.setSoTimeout(wait_time_seconds * 1000);
-						    //Receive session data
-						    DatagramPacket receivePacket = new DatagramPacket(inBuf_r1, inBuf_r1.length);
+						    
+						    DatagramPacket receivePacket = new DatagramPacket(inBuf_r, inBuf_r.length);
 						    clientSocket.receive(receivePacket);
 						    String[] packetList = new String(receivePacket.getData(),0,receivePacket.getLength()).split("#");
 						    int callID = Integer.parseInt(packetList[0]);
 						    //Compare call id
 						    if(callID == call_id_r) {
-						    	session_loc = 2;
-						    	//Display that session was found from IPP Backup
-						    	return new String(inBuf_r1);
+						    	session_loc = 1;
+						    	return new String(inBuf_r,0,receivePacket.getLength());
 						    }
 						} catch(Exception e) {
-							mbrSet.remove(ipp2);
-							return null;
+							mbrSet.remove(ipp.get(i));
 						}
-					} else return null; //If session not found from IPP Primary or Backup then raise error					
+					}
+					return null;
+					
 				case 2:
 					/**
 					 * Session Write/Update case
@@ -234,16 +214,20 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					int call_id_u = (int)(Math.random() * 1000);
 					String packetS4_u = call_id_u + "#" + opcode + "#" + sessionid + "#" + sv.message + "#" + sv.version_number + "#" + sv.time_stamp + "#" + port_udp;
 					outBuf_u = packetS4_u.getBytes();
+					String backUP = "";
 					String ack = "NAK"; 
+					ArrayList<String> dupMbrSet = mbrSet;
 					
-					if(ipp1 != "") {
-						//First try to write/update session at IPP Primary if that exists 
-						InetAddress ipA4_u = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
-						int portA4_u = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
+					InetAddress ipWrite = null;
+					int portWrite;
+					for(int i = 0; i < ipp.size(); i++){
+						ack = "NAK";
+						ipWrite = InetAddress.getByName(ipp.get(i).substring(0,ipp.get(i).indexOf(':')));
+						portWrite = Integer.parseInt(ipp.get(i).substring(ipp.get(i).indexOf(':')+1));
+						dupMbrSet.remove(ipp.get(i));
 						try {
 							DatagramSocket clientSocket = new DatagramSocket();
-							DatagramPacket sendPacket = new DatagramPacket(outBuf_u, outBuf_u.length, ipA4_u, portA4_u);
-							//Send session related data
+							DatagramPacket sendPacket = new DatagramPacket(outBuf_u, outBuf_u.length, ipWrite, portWrite);
 						    clientSocket.send(sendPacket);
 						    //Wait for the acknowledgement
 						    clientSocket.setSoTimeout(wait_time_seconds * 1000);
@@ -254,26 +238,32 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						    int callID = Integer.parseInt(packetList[0]);
 						    //Check for the call id
 						    if(callID == call_id_u) {
-						    	ack = packetList[1];
-						    	//Check whether write operation succeeded or not
-						    	if(ack.equals("ACK")){
-						    		return ipp1;
+						    	if(packetList[1].equals("ACK")){
+						    		backUP += "#" + ipp.get(i);
+						    		resilience--;
 						    	}
 						    }
 						} catch(Exception e) {
-							mbrSet.remove(ipp1);
+							mbrSet.remove(ipp.get(i));
 							ack = "NAK";
+						}
+						if(resilience == 0){
+							return backUP;
 						}
 					} 
 					
-					if(ack.equals("NAK") && ipp2 != "") {
-						//Write at IPP Backup if it exists and if write request failed at the primary server
-						InetAddress ipA42_u = InetAddress.getByName(ipp2.substring(0,ipp2.indexOf(':')));
-						int portA42_u = Integer.parseInt(ipp2.substring(ipp2.indexOf(':')+1));
-						try {
+					while(k != 0 && dupMbrSet.size() > 0){
+						int randomNode;
+						InetAddress ipWrite1;
+						int portWrite1;
+						randomNode = (int)(Math.random() * dupMbrSet.size());
+						String ippWrite = dupMbrSet.get(randomNode);
+						ipWrite1 = InetAddress.getByName(ippWrite.substring(0,ippWrite.indexOf(':')));
+						portWrite1 = Integer.parseInt(ippWrite.substring(ipp.indexOf(':')+1));
+						dupMbrSet.remove(ippWrite);
+						try{
 							DatagramSocket clientSocket = new DatagramSocket();
-							DatagramPacket sendPacket = new DatagramPacket(outBuf_u, outBuf_u.length, ipA42_u, portA42_u);
-							//Send update/write data
+							DatagramPacket sendPacket = new DatagramPacket(outBuf_u, outBuf_u.length, ipWrite1, portWrite1);
 						    clientSocket.send(sendPacket);
 						    //Wait for the acknowledgement
 						    clientSocket.setSoTimeout(wait_time_seconds * 1000);
@@ -287,55 +277,14 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						    	ack = packetList[1];
 						    	//Check whether operation succeeded or not
 						    	if(ack.equals("ACK")){
-						    		return ipp2;
+						    		backUP += "#" + ippWrite;
+						    		resilience--;
 						    	}
 						    }
-						} catch(Exception e) {
-							mbrSet.remove(ipp2);
-							ack = "NAK";
+						} catch (Exception e) {
+							mbrSet.remove(ipp);
 						}
-					}
-					/**
-					 * If IPP Primary does not exist or write request failed at IPP Primary
-					 * and/or If IPP Backup does not exist or write request failed at IPP Backup
-					 * and If mbrSet is not null then try to write session at one of the servers
-					 */					
-					if (ack.equals("NAK") && mbrSet.size() > 0) {
-						int randomNode;
-						InetAddress ipA4_u;
-						int portA4_u;
-						//Repeat until ack has been received or mbrSet is null
-						do {
-							//Set IP and Port addresses
-							randomNode = (int)(Math.random() * mbrSet.size());
-							String ipp = mbrSet.get(randomNode);
-							ipA4_u = InetAddress.getByName(ipp.substring(0,ipp.indexOf(':')));
-							portA4_u = Integer.parseInt(ipp.substring(ipp.indexOf(':')+1));
-							try {
-								DatagramSocket clientSocket = new DatagramSocket();
-								DatagramPacket sendPacket = new DatagramPacket(outBuf_u, outBuf_u.length, ipA4_u, portA4_u);
-								//Send packet
-							    clientSocket.send(sendPacket);
-							    //Wait for some time
-							    clientSocket.setSoTimeout(wait_time_seconds * 1000);
-							    //Receive data
-							    DatagramPacket receivePacket = new DatagramPacket(inBuf_u, inBuf_u.length);
-							    clientSocket.receive(receivePacket);
-							    String[] packetList = new String(receivePacket.getData(),0,receivePacket.getLength()).split("#");
-							    int callID = Integer.parseInt(packetList[0]);
-							    //Compare call ids
-							    if(callID == call_id_u) {
-							    	ack = packetList[1];
-							    	//Check for the acknowledgement
-							    	if(ack.equals("ACK")){
-							    		return ipp;
-							    	}
-							    }
-							} catch (Exception e) {
-								mbrSet.remove(ipp);
-							}
-						} while(mbrSet.size() > 0 && ack.equals("NAK"));
-					}
+					}					
 				break;
 				case 3:
 					/**
@@ -350,10 +299,10 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					outBuf4 = packetS4.getBytes();
 					InetAddress ipA4;
 					int portA4;
-					if (!ipp1.equals("")) {
-						ipA4 = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
-						portA4 = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
-						//Remove session table entry from IPP Primary
+					for (int i = 0; i < ipp.size(); i++) {
+						ipA4 = InetAddress.getByName(ipp.get(i).substring(0,ipp.get(i).indexOf(':')));
+						portA4 = Integer.parseInt(ipp.get(i).substring(ipp.get(i).indexOf(':')+1));
+						
 						try {
 							DatagramSocket clientSocket = new DatagramSocket();
 							DatagramPacket sendPacket = new DatagramPacket(outBuf4, outBuf4.length, ipA4, portA4);
@@ -365,25 +314,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						    DatagramPacket receivePacket = new DatagramPacket(inBuf4, inBuf4.length);
 						    clientSocket.receive(receivePacket);				    
 						} catch(Exception e) {
-							mbrSet.remove(ipp1);
-						}
-					}
-					if(ipp2 != "") {
-						//Remove session table entry from the IPP Backup
-						InetAddress ipA42 = InetAddress.getByName(ipp2.substring(0,ipp2.indexOf(':')));
-						int portA42 = Integer.parseInt(ipp2.substring(ipp2.indexOf(':')+1));
-						try {
-							DatagramSocket clientSocket = new DatagramSocket();
-							DatagramPacket sendPacket = new DatagramPacket(outBuf4, outBuf4.length, ipA42, portA42);
-							//Send delete request
-						    clientSocket.send(sendPacket);
-						    //Wait for the ack
-						    clientSocket.setSoTimeout(wait_time_seconds * 1000);
-						    //Get data
-						    DatagramPacket receivePacket = new DatagramPacket(inBuf4, inBuf4.length);
-						    clientSocket.receive(receivePacket);				    
-						} catch(Exception e) {
-							mbrSet.remove(ipp2);
+							mbrSet.remove(ipp.get(i));
 						}
 					}
 				break;
@@ -397,10 +328,9 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					int call_id5 = (int)(Math.random() * 1000);
 					String packetS5 = call_id5 + "#" + opcode + "#" + version + "#" + port_udp;
 					outBuf5 = packetS5.getBytes();
-					//Get IP Address and port address
-					ipA4 = InetAddress.getByName(ipp1.substring(0,ipp1.indexOf(':')));
-					portA4 = Integer.parseInt(ipp1.substring(ipp1.indexOf(':')+1));
-
+					ipA4 = InetAddress.getByName(ipp.get(0).substring(0,ipp.get(0).indexOf(':')));
+					portA4 = Integer.parseInt(ipp.get(0).substring(ipp.get(0).indexOf(':')+1));
+					
 					try {
 						DatagramSocket clientSocket = new DatagramSocket();
 						DatagramPacket sendPacket = new DatagramPacket(outBuf5, outBuf5.length, ipA4, portA4);
@@ -410,8 +340,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					    clientSocket.setSoTimeout(wait_time_seconds * 1000);
 					    //Receive data
 					    DatagramPacket receivePacket = new DatagramPacket(inBuf5, inBuf5.length);
-					    clientSocket.receive(receivePacket);
-					    //Get mbrSet and add the mbrSet to current server's mbrSet
+					    clientSocket.receive(receivePacket);	
 					    String[] packetList = new String(receivePacket.getData(),0,receivePacket.getLength()).split("#");
 					    if(Integer.parseInt(packetList[0]) == call_id5) {
 					    	for(int i = 1; i<packetList.length; i++) {
@@ -489,7 +418,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 			sessionTable.put(session_id, sv);
 			//If server's mbrSet is not empty then write the session data at one backup server
 			if(mbrSet.size() != 0) {
-				backup_n = RPCClientStub(2,session_id,sv,"","","");
+				backup_n = RPCClientStub(2,session_id,sv,null,"");
 			}
 			
 			//Create cookie value
@@ -518,35 +447,38 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 			for (int i=0;i<c.length;i++) {
 				if(c[i].getName().equals("CS5300PROJ1SESSIONSVH")) {
 					//Get session id from cookie
-					String[] parts = c[i].getValue().split("#"); 
+					String[] msgIPPStale = c[i].getValue().split("@");
+					
+					String[] parts = msgIPPStale[0].split("#"); 
 					session_id_c = parts[0];
 					
-					String ipp1 = parts[3];
-					
-					if(mbrSet.size() == 0 && !ippLocal.equals(ipp1)) { 
-						RPCClientStub(4, "", null, ipp1, "", "4");   //get 4 members from ipp1 
-					} else if(mbrSet.size() == 0 && parts.length > 4 ) {
-						RPCClientStub(4, "", null, parts[4], "", "4");
-					}
-					
-					String ipp2 = "";
-					if(parts.length > 4) {
-						ipp2 = parts[4];
-						if(!ippLocal.equals(ipp2) && mbrSet.indexOf(ipp2) == -1) {
-							mbrSet.add(ipp2.replace("/", ""));
-						}
-					}
-					//If cookie has stale IPP then send the RPC delete request to that IPP
-					if(parts.length > 5) {
-						String ippStale = parts[5];
+					if(msgIPPStale.length > 1){
+						String ippStale = msgIPPStale[1];
 						if(!ippStale.equals(ippLocal)){
-							SessionValue sv1 = null;
-							RPCClientStub(3, session_id_c, sv1,"", ippStale, parts[1]);
+							ArrayList<String> ipStale = new ArrayList<String>();
+							ipStale.add(ippStale);
+							RPCClientStub(3, session_id_c, null, ipStale, parts[1]);
 						}
 					}
-					//Add IPP to the mbrSet
-					if(!ippLocal.equals(ipp1) && mbrSet.indexOf(ipp1) == -1) {
-						mbrSet.add(ipp1.replace("/", ""));
+					
+					ArrayList<String> ipp = new ArrayList<String>();
+					
+					for(int j=3; j<parts.length; j++){
+						if(!ippLocal.equals(parts[j])){
+						ipp.add(parts[j]);	
+							if(mbrSet.indexOf(parts[j]) == -1) {
+								mbrSet.add(parts[j].replace("/", ""));
+							}
+						}
+					}
+					
+					ArrayList<String> ipMbr = new ArrayList<String>();
+					if(mbrSet.size() < 2 && ipp.size() > 0 && !ippLocal.equals(ipp.get(0))) {
+						ipMbr.add(ipp.get(0));
+						RPCClientStub(4, "", null, ipMbr,"4");        //get 4 members from ipp1 
+					} else if(mbrSet.size() < 2 && ipp.size() > 1 && !ippLocal.equals(ipp.get(1))) {
+						ipMbr.add(ipp.get(1));
+						RPCClientStub(4, "", null, ipMbr, "4");
 					}
 					
 					//Get session value corresponding to the above session id
@@ -554,7 +486,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					SessionValue sv1 = (SessionValue) sessionTable.get(session_id_c);
 					
 					if(sv1 == null || (sv1 != null && Integer.parseInt(sv1.version_number) < Integer.parseInt(parts[1]))) {
-						String sv1_data = RPCClientStub(1, session_id_c, null, ipp1, ipp2, parts[1] );
+						String sv1_data = RPCClientStub(1, session_id_c, null, ipp, parts[1] );
 						
 						if (sv1_data == null) {
 							c[i].setMaxAge(0);
@@ -610,14 +542,8 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 							c[i].setMaxAge(0); //Set cookie expiration time to 0
 							response.addCookie(c[i]); //Send new cookie
 							
-							//Remove from other servers
-							if(ippLocal.equals(ipp1)) {
-								RPCClientStub(3,session_id_c,sv1,"",ipp2,parts[1]);
-							}
-							else if(ippLocal.equals(ipp2)) {
-								RPCClientStub(3,session_id_c,sv1,ipp1,"",parts[1]);
-							}
-							else RPCClientStub(3,session_id_c,sv1,ipp1,ipp2,parts[1]);
+							//Remove
+							RPCClientStub(3,session_id_c,sv1,ipp,parts[1]);
 							
 							RemoveCookie(session_id_c); //Remove entry from session table
 														
@@ -639,25 +565,28 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						sessionTable.put(session_id_c, sv1);
 					}
 					
-					String backUpIP = "";
-					if (mbrSet.size() > 0) {
-						if(ippLocal.equals(ipp1)) {
-							backUpIP = RPCClientStub(2,session_id_c,sv1,"",ipp2,"");
-						}
-						else if(ippLocal.equals(ipp2)) {
-							backUpIP = RPCClientStub(2,session_id_c,sv1,ipp1,"","");
-						}
-						else backUpIP = RPCClientStub(2,session_id_c,sv1,ipp1,ipp2,"");
-					}
+					String backUpIP = RPCClientStub(2,session_id_c,sv1,ipp,"");
 					
 					String cookie_msg;
-					if(backUpIP != "" && !backUpIP.equals(ipp1) && !backUpIP.equals(ippLocal)) {
-						cookie_msg = parts[0]+"#"+ (Integer.parseInt(parts[1]) + 1) +"#"+new_msg + "#" + ippLocal + "#" + backUpIP + "#" + ipp1;
-					} else if(backUpIP != "" && !backUpIP.equals(ipp2) && !backUpIP.equals(ippLocal)) {
-						cookie_msg = parts[0]+"#"+ (Integer.parseInt(parts[1]) + 1) +"#"+new_msg + "#" + ippLocal + "#" + backUpIP + "#" + ipp2;
+					if(backUpIP != ""){
+						cookie_msg = parts[0]+"#"+ (Integer.parseInt(parts[1]) + 1) +"#"+new_msg + "#" + ippLocal + backUpIP;
 					} else {
 						cookie_msg = parts[0]+"#"+ (Integer.parseInt(parts[1]) + 1) +"#"+new_msg + "#" + ippLocal;
 					}
+					
+					String ippStale = "";
+					String[] backUpList = backUpIP.split("#");
+					for(int j=0; j < ipp.size(); j++){
+						if(! Arrays.asList(backUpList).contains(ipp.get(j))){
+							ippStale = ipp.get(j);
+							break;
+						}
+					}
+					
+					if(ippStale != ""){
+						cookie_msg += "@" + ippStale;
+					}
+					
 					c[i].setValue(cookie_msg);
 					c[i].setMaxAge(minutes * 60 + delta);
 					response.addCookie(c[i]);
@@ -672,7 +601,8 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					request.getParameter("first").equals("true")){
 				session_loc = 0;
 			}
-			request.setAttribute("location", session_loc+"");	
+			request.setAttribute("location", session_loc+"");
+	
 			request.getRequestDispatcher("/Project.jsp").forward(request, response);
 		}
 	}
