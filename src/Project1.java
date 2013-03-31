@@ -21,9 +21,9 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-/*import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.ec2.AmazonEC2Client;
-import com.amazonaws.services.ec2.model.StopInstancesRequest;*/
+import com.amazonaws.services.ec2.model.StopInstancesRequest;
 
 /**
  * SessionValue class is used to store session related values in
@@ -49,8 +49,8 @@ class CleanUpProcess extends TimerTask {
          * the stale session entry, it removes that session entry 
          * from the session table.
          */
-    	for (Iterator<Map.Entry<String, SessionValue>> itr = Project1.sessionTable.entrySet().iterator(); itr.hasNext(); ) {
-    		/**
+        for (Iterator<Map.Entry<String, SessionValue>> itr = Project1.sessionTable.entrySet().iterator(); itr.hasNext(); ) {
+        	/**
     		 * We first lock the row which we may delete later. So that it offers better synchronization. 
     		 */
         	synchronized (itr) {
@@ -60,8 +60,9 @@ class CleanUpProcess extends TimerTask {
     		     * expiration time, if yes then remove that entry from session
     		     * table.
     		     */
-    		    if (entry.getValue().time_stamp < new Date().getTime()) {
-    		    	itr.remove();    			    
+    		    if (entry.getValue().time_stamp + 1000 < new Date().getTime()) {
+    		    	itr.remove();		        
+    			    
     			}
 			}		            	
     	}
@@ -85,6 +86,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 	
 	//Concurrent Hashmap sessionTable is used to store session data
 	public static ConcurrentHashMap<String,SessionValue> sessionTable = new ConcurrentHashMap<String,SessionValue>(100);
+	
 	public static ArrayList<String> mbrSet = new ArrayList<String>();
 	
 	public static int port_udp;
@@ -150,12 +152,11 @@ public class Project1 extends HttpServlet implements ServletContextListener {
      * @param opcode Operation code for the currrent operation
      * @param sessionid Session id of the current session
      * @param sv SessionValue object related to the current session
-     * @param ipp1 IPP Primary
-     * @param ipp2 IPP Backup
+     * @param ipp List of the IPPs
      * @param version Version number
      * @return Data or null if operation failed
      */
-    String RPCClientStub(int opcode, String sessionid, SessionValue sv, String ipp1, String ipp2, String version) {
+    String RPCClientStub(int opcode, String sessionid, SessionValue sv, ArrayList<String> ipp, String version) {
 		try {		    
 			switch(opcode) {
 				case 1:
@@ -165,7 +166,6 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					 */
 					byte[] outBuf_r;
 					byte[] inBuf_r = new byte[512];
-					byte[] inBuf_r1 = new byte[512];
 					//Generate unique call id for this operation
 					int call_id_r = (int)(Math.random() * 1000);
 					//Create packet
@@ -216,7 +216,10 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					outBuf_u = packetS4_u.getBytes();
 					String backUP = "";
 					String ack = "NAK"; 
-					ArrayList<String> dupMbrSet = mbrSet;
+					ArrayList<String> dupMbrSet = new ArrayList<String>();
+					for(String s : mbrSet) {
+						dupMbrSet.add(s);
+					}
 					
 					InetAddress ipWrite = null;
 					int portWrite;
@@ -252,6 +255,9 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						}
 					} 
 					
+					/**
+					 * k-resilient system where we write to k other servers
+					 */
 					while(k != 0 && dupMbrSet.size() > 0){
 						int randomNode;
 						InetAddress ipWrite1;
@@ -261,7 +267,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						ipWrite1 = InetAddress.getByName(ippWrite.substring(0,ippWrite.indexOf(':')));
 						portWrite1 = Integer.parseInt(ippWrite.substring(ipp.indexOf(':')+1));
 						dupMbrSet.remove(ippWrite);
-						try{
+						try {
 							DatagramSocket clientSocket = new DatagramSocket();
 							DatagramPacket sendPacket = new DatagramPacket(outBuf_u, outBuf_u.length, ipWrite1, portWrite1);
 						    clientSocket.send(sendPacket);
@@ -284,8 +290,9 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						} catch (Exception e) {
 							mbrSet.remove(ipp);
 						}
-					}					
+					}
 				break;
+
 				case 3:
 					/**
 					 * Session Delete case
@@ -293,7 +300,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					 */
 					byte[] outBuf4;
 					byte[] inBuf4 = new byte[512];
-					//Generate unique call numbers
+					//Generate unique call number
 					int call_id4 = (int)(Math.random() * 1000);
 					String packetS4 = call_id4 + "#" + opcode + "#" + sessionid + "#" + version + "#" + port_udp;
 					outBuf4 = packetS4.getBytes();
@@ -318,6 +325,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						}
 					}
 				break;
+
 				case 4:
 					/**
 					 * Accelerated Group membership protocol
@@ -325,6 +333,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					 */
 					byte[] outBuf5;
 					byte[] inBuf5 = new byte[512];
+					//Generate unique call id
 					int call_id5 = (int)(Math.random() * 1000);
 					String packetS5 = call_id5 + "#" + opcode + "#" + version + "#" + port_udp;
 					outBuf5 = packetS5.getBytes();
@@ -352,7 +361,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					    	}
 					    }
 					} catch(Exception e) {
-
+						//mbrSet.remove(ipp1);
 					}
 					break;
 					
@@ -377,22 +386,20 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 		String ippLocal = InetAddress.getLocalHost().getHostAddress().replace("/", "") + ":" + port_udp;
 		boolean redirect = false;
 		
-		System.out.println("Request Arrived!");
+		resilience = k;
 		/**
 		 * Stop amazon ec2 instance using Amazon SDK
 		 */
 		if(request.getParameter("cmd") != null && request.getParameter("cmd").equals("error")) {
-			/*BasicAWSCredentials awsCredentials = new BasicAWSCredentials("AKIAJ22NLENRGJQT4Z2Q", "Y9VFisUjD9NKGntXhjZsGvUQo8cuS4BXgg20FdWL");
+			BasicAWSCredentials awsCredentials = new BasicAWSCredentials("AKIAJ22NLENRGJQT4Z2Q", "Y9VFisUjD9NKGntXhjZsGvUQo8cuS4BXgg20FdWL");
 
 			AmazonEC2Client ec2Client = new AmazonEC2Client(awsCredentials);
-			ec2Client.setEndpoint("");/*ec2.us-west-1.amazonaws.com
-
 			List<String> instancesToStop = new ArrayList<String>();
 	        instancesToStop.add(request.getParameter("instance"));
 	        StopInstancesRequest stoptr = new StopInstancesRequest();                
 	        stoptr.setInstanceIds(instancesToStop);
 	        ec2Client.stopInstances(stoptr);
-			return;*/
+			return;
 		}
 		
 		/*
@@ -416,6 +423,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 			sv.time_stamp = new Date().getTime() + ((minutes * 60+ 2*delta + tau) * 1000 );
 			
 			sessionTable.put(session_id, sv);
+			
 			//If server's mbrSet is not empty then write the session data at one backup server
 			if(mbrSet.size() != 0) {
 				backup_n = RPCClientStub(2,session_id,sv,null,"");
@@ -428,13 +436,11 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 			}
 			
 			Cookie ck = new Cookie("CS5300PROJ1SESSIONSVH",message);
-			//Currently session timeout period is of 1 minute.
 			ck.setMaxAge(minutes * 60 + delta);
 			//Send cookie to the client
 			response.addCookie(ck);
 						
 			session_loc = 0;
-			System.out.println("Default");
 		}
 		/*
 		 * If client's request has some cookie with it then process the cookie based on various events like
@@ -475,7 +481,7 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 					ArrayList<String> ipMbr = new ArrayList<String>();
 					if(mbrSet.size() < 2 && ipp.size() > 0 && !ippLocal.equals(ipp.get(0))) {
 						ipMbr.add(ipp.get(0));
-						RPCClientStub(4, "", null, ipMbr,"4");        //get 4 members from ipp1 
+						RPCClientStub(4, "", null, ipMbr,"4");//get 4 members using accelerated group membership protocol 
 					} else if(mbrSet.size() < 2 && ipp.size() > 1 && !ippLocal.equals(ipp.get(1))) {
 						ipMbr.add(ipp.get(1));
 						RPCClientStub(4, "", null, ipMbr, "4");
@@ -491,24 +497,20 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						if (sv1_data == null) {
 							c[i].setMaxAge(0);
 							response.addCookie(c[i]);
-							
 							RemoveCookie(session_id_c);
-							
 							response.sendRedirect(request.getContextPath() + "/ErrorPage.jsp");
 							redirect = true;
 						} else {
 							sv1 = new SessionValue();
 							
-							System.out.println("data:" + sv1_data);
-							
 							String[] parts1 = sv1_data.split("#");
 							sv1.message = parts1[2];
 							sv1.version_number = parts1[3];
 							sv1.time_stamp = Long.parseLong(parts1[4]);
+							//sessionTable.put(session_id_c, sv1);
 						}
 					} else if(sv1 != null && Integer.parseInt(sv1.version_number) >= Integer.parseInt(parts[1])) {
 						session_loc = 3;
-						System.out.println("From Table");
 					}
 					
 					String new_msg = "";
@@ -560,20 +562,21 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 						sv1.time_stamp = new Date().getTime() + ((minutes * 60 + 2*delta + tau) * 1000 ); 
 						sv1.message = new_msg;
 						int vno = Integer.parseInt(sv1.version_number);
-						sv1.version_number = (++vno) + ""; //Increment version number
+						sv1.version_number = (++vno) + "";//Increment version number
 						
 						sessionTable.put(session_id_c, sv1);
 					}
 					
+					//Backup the session data
 					String backUpIP = RPCClientStub(2,session_id_c,sv1,ipp,"");
-					
+					//If backup IPP found then append in the cookie
 					String cookie_msg;
 					if(backUpIP != ""){
 						cookie_msg = parts[0]+"#"+ (Integer.parseInt(parts[1]) + 1) +"#"+new_msg + "#" + ippLocal + backUpIP;
 					} else {
 						cookie_msg = parts[0]+"#"+ (Integer.parseInt(parts[1]) + 1) +"#"+new_msg + "#" + ippLocal;
 					}
-					
+					//Handle stale IPP
 					String ippStale = "";
 					String[] backUpList = backUpIP.split("#");
 					for(int j=0; j < ipp.size(); j++){
@@ -582,11 +585,11 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 							break;
 						}
 					}
-					
+					//To identify IPP stale we use @ delimiter
 					if(ippStale != ""){
 						cookie_msg += "@" + ippStale;
 					}
-					
+					//Update cookie values and add it to the response
 					c[i].setValue(cookie_msg);
 					c[i].setMaxAge(minutes * 60 + delta);
 					response.addCookie(c[i]);
@@ -596,13 +599,13 @@ public class Project1 extends HttpServlet implements ServletContextListener {
 		if(request.getParameter("cmd") != null && request.getParameter("cmd").equals("logout")){
 			
 		} else if(!redirect){
+			//Transfer mbrSet and the location from where we found session to the JSP page to display to the users
 			request.setAttribute("mbrSet", mbrSet);
 			if(request.getParameter("first") != null && 
 					request.getParameter("first").equals("true")){
 				session_loc = 0;
 			}
-			request.setAttribute("location", session_loc+"");
-	
+			request.setAttribute("location", session_loc+"");	
 			request.getRequestDispatcher("/Project.jsp").forward(request, response);
 		}
 	}

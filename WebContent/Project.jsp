@@ -47,11 +47,13 @@
 		int tau = 5;
 		
 		String[] parts = null;
+		String[] msgIPP = null;
 		if(c != null) {
 			//Get cookie's data
 			for (int i=0;i<c.length;i++) {
 				if(c[i].getName().equals("CS5300PROJ1SESSIONSVH")) {
-					parts = c[i].getValue().split("#");
+					msgIPP = c[i].getValue().split("@");
+					parts = msgIPP[0].split("#");
 					msg = parts[2];
 					maxage = c[i].getMaxAge();
 				}
@@ -106,13 +108,19 @@
 				break;
 			}
 			out.println("<br/>Session found at: "+session_locc);
-			//Display IPP Primary and IPP Backup from the cookie
+			//Display IPP Primary, IPP Backup and IPP Stale from the cookie
 			if(c != null) {
 				for (int i=0;i<c.length;i++) {
 					if(c[i].getName().equals("CS5300PROJ1SESSIONSVH")) {
 						out.println("<br/>IPP primary: " + parts[3]);
-						if(parts.length > 4) {
-							out.println("<br/>IPP backup: " + parts[4]);
+						if(parts.length > 4){
+							out.println("<br/>IPP backup: ");
+							for(int j = 4; j < parts.length; j++) {
+								out.println("<br/>" + parts[j]);
+							}
+						}
+						if(msgIPP.length > 1){
+							out.println("<br/>Stale IPP: " + msgIPP[1]);
 						}
 					}
 				}
