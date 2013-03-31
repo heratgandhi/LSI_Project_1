@@ -1,3 +1,6 @@
+<!--
+	This page is used to show when there is some error in processing the request. 
+ -->
 <%@ page language="java" contentType="text/html; charset=ISO-8859-1"
     pageEncoding="ISO-8859-1" session="false" %>
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
@@ -7,6 +10,8 @@
 <title>Error</title>
 </head>
 <body>
-Try again.
+<%
+ out.println("<tr><td><a href='"+ request.getContextPath() +"'><button>Try Again.</button></a></td></tr>");
+%>
 </body>
 </html>
